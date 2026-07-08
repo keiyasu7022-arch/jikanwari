@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Student, Teacher } from "@/types";
 import { formatYen } from "@/lib/utils";
+import { currentGrade } from "@/lib/gradeUtils";
 import TeacherFormModal from "./TeacherFormModal";
 import StudentFormModal from "./StudentFormModal";
 
@@ -44,11 +45,12 @@ export default function ManageView({
           </button>
         </div>
         <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-          <table className="w-full min-w-[560px] border-collapse text-sm">
+          <table className="w-full min-w-[640px] border-collapse text-sm">
             <thead>
               <tr className="bg-slate-50 text-left text-xs font-semibold text-slate-500">
                 <th className="border-b border-slate-200 px-4 py-3">氏名</th>
                 <th className="border-b border-slate-200 px-4 py-3">担当科目</th>
+                <th className="border-b border-slate-200 px-4 py-3">勤務地</th>
                 <th className="border-b border-slate-200 px-4 py-3">時給</th>
                 <th className="border-b border-slate-200 px-4 py-3 text-right">操作</th>
               </tr>
@@ -61,6 +63,11 @@ export default function ManageView({
                   </td>
                   <td className="border-b border-slate-100 px-4 py-3 text-slate-500">
                     {t.subject}
+                  </td>
+                  <td className="border-b border-slate-100 px-4 py-3 text-slate-500">
+                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
+                      {t.location}
+                    </span>
                   </td>
                   <td className="border-b border-slate-100 px-4 py-3 text-slate-500">
                     {formatYen(t.hourlyWage)} / 時
@@ -94,7 +101,7 @@ export default function ManageView({
       </section>
 
       <section>
-        <div className="mb-3 flex items-center justify-between">
+        <div className="mb-1 flex items-center justify-between">
           <h3 className="text-base font-bold text-slate-800">生徒管理</h3>
           <button
             onClick={() => {
@@ -106,6 +113,9 @@ export default function ManageView({
             + 生徒を追加
           </button>
         </div>
+        <p className="mb-3 text-xs text-slate-400">
+          学年は毎年4月1日（新年度）に自動で1つ進級します。
+        </p>
         <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
           <table className="w-full min-w-[480px] border-collapse text-sm">
             <thead>
@@ -122,7 +132,7 @@ export default function ManageView({
                     {s.name}
                   </td>
                   <td className="border-b border-slate-100 px-4 py-3 text-slate-500">
-                    {s.grade}
+                    {currentGrade(s)}
                   </td>
                   <td className="border-b border-slate-100 px-4 py-3 text-right">
                     <button

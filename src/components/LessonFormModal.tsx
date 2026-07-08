@@ -5,6 +5,7 @@ import Modal from "./Modal";
 import { Lesson, PERIODS, Student, Teacher } from "@/types";
 import { generateId } from "@/lib/utils";
 import { parseISODate, weekdayLabel } from "@/lib/dateUtils";
+import { currentGrade } from "@/lib/gradeUtils";
 
 interface Props {
   date: string;
@@ -123,7 +124,7 @@ export default function LessonFormModal({
                   className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
                 />
                 <span>{s.name}</span>
-                <span className="text-xs text-slate-400">{s.grade}</span>
+                <span className="text-xs text-slate-400">{currentGrade(s)}</span>
               </label>
             ))}
           </div>

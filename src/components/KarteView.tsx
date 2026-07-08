@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { KarteEntry, Student, Teacher } from "@/types";
+import { currentGrade } from "@/lib/gradeUtils";
 import KarteEntryModal from "./KarteEntryModal";
 
 interface Props {
@@ -55,7 +56,7 @@ export default function KarteView({ students, teachers, karteEntries, onAddEntry
                 }`}
               >
                 <div className="font-medium">{s.name}</div>
-                <div className="text-xs text-slate-400">{s.grade}</div>
+                <div className="text-xs text-slate-400">{currentGrade(s)}</div>
               </button>
             </li>
           ))}
@@ -73,7 +74,7 @@ export default function KarteView({ students, teachers, karteEntries, onAddEntry
             <div className="mb-4 flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-bold text-slate-800">{selectedStudent.name}</h3>
-                <p className="text-sm text-slate-400">{selectedStudent.grade}</p>
+                <p className="text-sm text-slate-400">{currentGrade(selectedStudent)}</p>
               </div>
               <button
                 onClick={() => setShowModal(true)}

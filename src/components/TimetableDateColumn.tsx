@@ -47,7 +47,7 @@ export default function TimetableDateColumn({
 
   return (
     <div
-      className="grid gap-1 p-1"
+      className="grid"
       style={{
         gridTemplateColumns: `repeat(${renderLaneCount}, minmax(0, 1fr))`,
         gridTemplateRows: `repeat(${periods.length}, ${ROW_HEIGHT}px)`,
@@ -70,7 +70,7 @@ export default function TimetableDateColumn({
               gridColumn: block.lane + 1,
               gridRow: `${block.startIndex + 1} / span ${block.span}`,
             }}
-            className={`flex flex-col overflow-hidden rounded-lg border text-left transition-opacity ${
+            className={`m-1 flex flex-col overflow-hidden rounded-lg border text-left transition-opacity ${
               isUndecided
                 ? "border-rose-300 bg-rose-50"
                 : "border-indigo-200 bg-indigo-50"
@@ -124,7 +124,7 @@ export default function TimetableDateColumn({
               key={`${period.id}-${lane}`}
               style={{ gridColumn: lane + 1, gridRow: rIdx + 1 }}
               onClick={() => onAdd(period.id)}
-              className="rounded-lg border border-dashed border-slate-200 text-[11px] text-slate-400 hover:border-indigo-300 hover:text-indigo-500"
+              className="m-1 rounded-lg border border-dashed border-slate-200 text-[11px] text-slate-400 hover:border-indigo-300 hover:text-indigo-500"
             >
               + コマ追加
             </button>

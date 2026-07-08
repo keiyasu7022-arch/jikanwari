@@ -39,17 +39,22 @@ export const PERIODS: Period[] = generatePeriods();
 // 1コマあたりの授業時間（時間）。給与計算に使用。
 export const LESSON_DURATION_HOURS = LESSON_MINUTES / 60;
 
+export const WORK_LOCATIONS = ["桑山", "総本陣"] as const;
+export type WorkLocation = (typeof WORK_LOCATIONS)[number];
+
 export interface Teacher {
   id: string;
   name: string;
   hourlyWage: number;
   subject: string;
+  location: WorkLocation;
 }
 
 export interface Student {
   id: string;
   name: string;
-  grade: string;
+  grade: string; // gradeYear年度時点での学年
+  gradeYear: number; // gradeを記録した年度（4/1〜翌3/31）。毎年4/1に自動で1学年進級する。
 }
 
 export interface Lesson {
