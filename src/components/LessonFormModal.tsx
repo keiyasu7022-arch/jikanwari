@@ -37,48 +37,112 @@ export default function LessonFormModal({
   onDelete,
 }: Props) {
   const [selectedDate, setSelectedDate] = useState(date ?? todayISO());
-  const [selectedPeriodId, setSelectedPeriodId] = useState(periodId ?? PERIODS[0].id);
   const [subject, setSubject] = useState(lesson?.subject ?? defaultSubject ?? "");
   const [teacherId, setTeacherId] = useState<string>(
     lesson?.teacherId ?? defaultTeacherId ?? ""
-  );
-  const [studentIds, setStudentIds] = useState<string[]>(
-    lesson?.studentIds ?? defaultStudentIds ?? []
   );
   const [location, setLocation] = useState<WorkLocation>(
     lesson?.location ?? defaultLocation ?? WORK_LOCATIONS[0]
   );
   const [error, setError] = useState("");
 
-  const toggleStudent = (id: string) => {
-    setStudentIds((prev) =>
+  // 編集時は既存の1コマのみを対象にする
+  const [editStudentIds, setEditStudentIds] = useState<string[]>(lesson?.studentIds ?? []);
+  const [editPeriodId, setEditPeriodId] = useState(lesson?.periodId ?? periodId ?? PERIODS[0].id);
+
+  // 新規作成時は複数コマをまとめて選択できるようにする
+  const [selectedPeriodIds, setSelectedPeriodIds] = useState<number[]>(
+    periodId ? [periodId] : []
+  );
+  const [studentIdsByPeriod, setStudentIdsByPeriod] = useState<Record<number, string[]>>(
+    periodId ? { [periodId]: defaultStudentIds ?? [] } : {}
+  );
+
+  const isEditing = Boolean(lesson);
+
+  const toggleEditStudent = (id: string) => {
+    setEditStudentIds((prev) =>
       prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
     );
   };
 
-  const handleSubmit = () => {
+  const togglePeriod = (pid: number) => {
+    if (selectedPeriodIds.includes(pid)) {
+      setSelectedPeriodIds(selectedPeriodIds.filter((p) => p !== pid));
+      const rest = { ...studentIdsByPeriod };
+      delete rest[pid];
+      setStudentIdsByPeriod(rest);
+    } else {
+      const base =
+        selectedPeriodIds.length > 0
+          ? studentIdsByPeriod[selectedPeriodIds[0]] ?? []
+          : defaultStudentIds ?? [];
+      setSelectedPeriodIds([...selectedPeriodIds, pid].sort((a, b) => a - b));
+      setStudentIdsByPeriod({ ...studentIdsByPeriod, [pid]: [...base] });
+    }
+  };
+
+  const toggleStudentForPeriod = (pid: number, studentId: string) => {
+    const current = studentIdsByPeriod[pid] ?? [];
+    const next = current.includes(studentId)
+      ? current.filter((s) => s !== studentId)
+      : [...current, studentId];
+    setStudentIdsByPeriod({ ...studentIdsByPeriod, [pid]: next });
+  };
+
+  const handleSubmitEdit = () => {
     if (!subject.trim()) {
       setError("科目を入力してください。");
       return;
     }
-    if (studentIds.length === 0) {
+    if (editStudentIds.length === 0) {
       setError("生徒を1人以上選択してください。");
       return;
     }
     onSave({
-      id: lesson?.id ?? generateId("l"),
+      id: lesson!.id,
       date: selectedDate,
-      periodId: selectedPeriodId,
+      periodId: editPeriodId,
       subject: subject.trim(),
       teacherId: teacherId === "" ? null : teacherId,
-      studentIds,
+      studentIds: editStudentIds,
       location,
     });
     onClose();
   };
 
+  const handleSubmitCreate = () => {
+    if (!subject.trim()) {
+      setError("科目を入力してください。");
+      return;
+    }
+    if (selectedPeriodIds.length === 0) {
+      setError("コマを1つ以上選択してください。");
+      return;
+    }
+    const hasEmptyPeriod = selectedPeriodIds.some(
+      (pid) => (studentIdsByPeriod[pid] ?? []).length === 0
+    );
+    if (hasEmptyPeriod) {
+      setError("選択した各コマに生徒を1人以上選択してください。");
+      return;
+    }
+    selectedPeriodIds.forEach((pid) => {
+      onSave({
+        id: generateId("l"),
+        date: selectedDate,
+        periodId: pid,
+        subject: subject.trim(),
+        teacherId: teacherId === "" ? null : teacherId,
+        studentIds: studentIdsByPeriod[pid] ?? [],
+        location,
+      });
+    });
+    onClose();
+  };
+
   return (
-    <Modal title={lesson ? "コマを編集" : "コマを追加"} onClose={onClose}>
+    <Modal title={isEditing ? "コマを編集" : "コマを追加"} onClose={onClose}>
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-3">
           <div>
@@ -90,20 +154,22 @@ export default function LessonFormModal({
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
             />
           </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-slate-600">コマ</label>
-            <select
-              value={selectedPeriodId}
-              onChange={(e) => setSelectedPeriodId(Number(e.target.value))}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-            >
-              {PERIODS.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.label}（{p.time}）
-                </option>
-              ))}
-            </select>
-          </div>
+          {isEditing && (
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-600">コマ</label>
+              <select
+                value={editPeriodId}
+                onChange={(e) => setEditPeriodId(Number(e.target.value))}
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+              >
+                {PERIODS.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.label}（{p.time}）
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
 
         <div>
@@ -152,28 +218,90 @@ export default function LessonFormModal({
           )}
         </div>
 
-        <div>
-          <label className="mb-1 block text-sm font-medium text-slate-600">
-            生徒（複数選択可・前後のコマと異なる生徒でもOK）
-          </label>
-          <div className="max-h-48 space-y-1 overflow-y-auto rounded-lg border border-slate-200 p-2">
-            {students.map((s) => (
-              <label
-                key={s.id}
-                className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-slate-50"
-              >
-                <input
-                  type="checkbox"
-                  checked={studentIds.includes(s.id)}
-                  onChange={() => toggleStudent(s.id)}
-                  className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-                />
-                <span>{s.name}</span>
-                <span className="text-xs text-slate-400">{currentGrade(s)}</span>
-              </label>
-            ))}
+        {isEditing ? (
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-600">
+              生徒（複数選択可・前後のコマと異なる生徒でもOK）
+            </label>
+            <div className="max-h-48 space-y-1 overflow-y-auto rounded-lg border border-slate-200 p-2">
+              {students.map((s) => (
+                <label
+                  key={s.id}
+                  className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-slate-50"
+                >
+                  <input
+                    type="checkbox"
+                    checked={editStudentIds.includes(s.id)}
+                    onChange={() => toggleEditStudent(s.id)}
+                    className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                  />
+                  <span>{s.name}</span>
+                  <span className="text-xs text-slate-400">{currentGrade(s)}</span>
+                </label>
+              ))}
+            </div>
           </div>
-        </div>
+        ) : (
+          <>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-600">
+                コマ（複数選択可・同じ講師・科目・場所でまとめて登録できます）
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {PERIODS.map((p) => {
+                  const checked = selectedPeriodIds.includes(p.id);
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => togglePeriod(p.id)}
+                      className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
+                        checked
+                          ? "border-indigo-600 bg-indigo-600 text-white"
+                          : "border-slate-300 bg-white text-slate-600 hover:bg-slate-50"
+                      }`}
+                    >
+                      {p.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {selectedPeriodIds.length > 0 && (
+              <div className="space-y-3">
+                {selectedPeriodIds.map((pid) => {
+                  const period = PERIODS.find((p) => p.id === pid)!;
+                  const ids = studentIdsByPeriod[pid] ?? [];
+                  return (
+                    <div key={pid}>
+                      <label className="mb-1 block text-sm font-medium text-slate-600">
+                        {period.label}の生徒（複数選択可）
+                      </label>
+                      <div className="max-h-40 space-y-1 overflow-y-auto rounded-lg border border-slate-200 p-2">
+                        {students.map((s) => (
+                          <label
+                            key={s.id}
+                            className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-slate-50"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={ids.includes(s.id)}
+                              onChange={() => toggleStudentForPeriod(pid, s.id)}
+                              className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                            />
+                            <span>{s.name}</span>
+                            <span className="text-xs text-slate-400">{currentGrade(s)}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        )}
 
         {error && <p className="text-sm text-rose-500">{error}</p>}
 
@@ -199,7 +327,7 @@ export default function LessonFormModal({
               キャンセル
             </button>
             <button
-              onClick={handleSubmit}
+              onClick={isEditing ? handleSubmitEdit : handleSubmitCreate}
               className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
             >
               保存
