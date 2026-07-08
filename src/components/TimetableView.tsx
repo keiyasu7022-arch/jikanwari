@@ -1,11 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Lesson, PERIODS, Student, Teacher, WorkLocation } from "@/types";
+import { KarteEntry, Lesson, PERIODS, Period, Student, Teacher, WorkLocation } from "@/types";
 import LessonFormModal from "./LessonFormModal";
-import LessonDetailModal from "./LessonDetailModal";
+import BlockDetailModal from "./BlockDetailModal";
+import BlockEditModal from "./BlockEditModal";
+import StudentHistoryModal from "./StudentHistoryModal";
 import PasswordPromptModal from "./PasswordPromptModal";
 import TimetableDateColumn, { ROW_HEIGHT } from "./TimetableDateColumn";
+import { LessonBlock } from "@/lib/calendarLayout";
 import { useAuth } from "@/context/AuthContext";
 import {
   addDays,
@@ -21,6 +24,7 @@ interface Props {
   teachers: Teacher[];
   students: Student[];
   lessons: Lesson[];
+  karteEntries: KarteEntry[];
   onSaveLesson: (lesson: Lesson) => void;
   onDeleteLesson: (id: string) => void;
 }
@@ -39,6 +43,7 @@ export default function TimetableView({
   teachers,
   students,
   lessons,
+  karteEntries,
   onSaveLesson,
   onDeleteLesson,
 }: Props) {
@@ -46,7 +51,9 @@ export default function TimetableView({
   const [search, setSearch] = useState("");
   const [weekStart, setWeekStart] = useState(() => getMonday(new Date()));
   const [editing, setEditing] = useState<EditingTarget | null>(null);
-  const [viewingLesson, setViewingLesson] = useState<Lesson | null>(null);
+  const [viewingBlock, setViewingBlock] = useState<LessonBlock | null>(null);
+  const [bulkEditingBlock, setBulkEditingBlock] = useState<LessonBlock | null>(null);
+  const [viewingStudent, setViewingStudent] = useState<Student | null>(null);
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
 
   const requireAuth = (action: () => void) => {
@@ -107,6 +114,37 @@ export default function TimetableView({
     const isoSet = new Set(weekDates.map(toISODate));
     return lessons.filter((l) => l.teacherId === null && isoSet.has(l.date)).length;
   }, [lessons, weekDates]);
+
+  const openSingleEditFromBlock = (period: Period, lesson: Lesson) => {
+    setViewingBlock(null);
+    requireAuth(() => setEditing({ date: lesson.date, periodId: lesson.periodId, lesson }));
+  };
+
+  const openBulkEdit = () => {
+    const block = viewingBlock;
+    if (!block) return;
+    setViewingBlock(null);
+    requireAuth(() => setBulkEditingBlock(block));
+  };
+
+  const handleBulkEditSave = (updatedLessons: Lesson[]) => {
+    updatedLessons.forEach((l) => onSaveLesson(l));
+    setBulkEditingBlock(null);
+  };
+
+  const openBulkDelete = () => {
+    const block = viewingBlock;
+    if (!block) return;
+    requireAuth(() => {
+      block.entries.forEach(({ lesson }) => onDeleteLesson(lesson.id));
+      setViewingBlock(null);
+    });
+  };
+
+  const openStudentHistory = (studentId: string) => {
+    const student = studentMap.get(studentId);
+    if (student) setViewingStudent(student);
+  };
 
   return (
     <div className="space-y-4">
@@ -218,7 +256,7 @@ export default function TimetableView({
                     teacherMap={teacherMap}
                     studentMap={studentMap}
                     matchedLessonIds={matchedLessonIds}
-                    onView={(_periodId, lesson) => setViewingLesson(lesson)}
+                    onViewBlock={(block) => setViewingBlock(block)}
                     onContinue={(periodId, prefill) =>
                       requireAuth(() =>
                         setEditing({
@@ -252,7 +290,7 @@ export default function TimetableView({
           <span className="h-3 w-3 rounded ring-2 ring-amber-400" />
           検索一致
         </div>
-        <div>同じ講師・科目のコマが連続する場合は1つのブロックとして連結表示されます（生徒の入れ替えも可）。</div>
+        <div>同じ講師・科目のコマが連続する場合は1つのブロックとして連結表示されます（生徒の入れ替えも可）。クリックすると連続するコマをまとめて確認・編集・削除できます。</div>
       </div>
 
       {editing && (
@@ -272,24 +310,33 @@ export default function TimetableView({
         />
       )}
 
-      {viewingLesson && (
-        <LessonDetailModal
-          lesson={viewingLesson}
-          period={PERIODS.find((p) => p.id === viewingLesson.periodId) ?? PERIODS[0]}
-          teacher={
-            viewingLesson.teacherId ? teacherMap.get(viewingLesson.teacherId) ?? null : null
-          }
-          students={viewingLesson.studentIds
-            .map((id) => studentMap.get(id))
-            .filter((s): s is Student => Boolean(s))}
-          onClose={() => setViewingLesson(null)}
-          onRequestEdit={() => {
-            const lesson = viewingLesson;
-            setViewingLesson(null);
-            requireAuth(() =>
-              setEditing({ date: lesson.date, periodId: lesson.periodId, lesson })
-            );
-          }}
+      {viewingBlock && (
+        <BlockDetailModal
+          block={viewingBlock}
+          teacher={viewingBlock.teacherId ? teacherMap.get(viewingBlock.teacherId) ?? null : null}
+          studentMap={studentMap}
+          onClose={() => setViewingBlock(null)}
+          onRequestBulkEdit={openBulkEdit}
+          onRequestBulkDelete={openBulkDelete}
+          onRequestEditSingle={openSingleEditFromBlock}
+          onSelectStudent={openStudentHistory}
+        />
+      )}
+
+      {bulkEditingBlock && (
+        <BlockEditModal
+          block={bulkEditingBlock}
+          teachers={teachers}
+          onClose={() => setBulkEditingBlock(null)}
+          onSave={handleBulkEditSave}
+        />
+      )}
+
+      {viewingStudent && (
+        <StudentHistoryModal
+          student={viewingStudent}
+          karteEntries={karteEntries}
+          onClose={() => setViewingStudent(null)}
         />
       )}
 

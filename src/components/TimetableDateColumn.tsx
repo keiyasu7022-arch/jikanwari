@@ -1,7 +1,7 @@
 "use client";
 
 import { Lesson, Period, Student, Teacher } from "@/types";
-import { buildDayBlocks } from "@/lib/calendarLayout";
+import { buildDayBlocks, LessonBlock } from "@/lib/calendarLayout";
 
 const ROW_HEIGHT = 92;
 
@@ -11,7 +11,7 @@ interface Props {
   teacherMap: Map<string, Teacher>;
   studentMap: Map<string, Student>;
   matchedLessonIds: Set<string> | null;
-  onView: (periodId: number, lesson: Lesson) => void;
+  onViewBlock: (block: LessonBlock) => void;
   onContinue: (
     periodId: number,
     prefill: {
@@ -29,7 +29,7 @@ export default function TimetableDateColumn({
   teacherMap,
   studentMap,
   matchedLessonIds,
-  onView,
+  onViewBlock,
   onContinue,
 }: Props) {
   const { blocks, laneCount } = buildDayBlocks(lessons, periods);
@@ -68,17 +68,26 @@ export default function TimetableDateColumn({
         return (
           <div
             key={block.key}
+            onClick={() => onViewBlock(block)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onViewBlock(block);
+              }
+            }}
+            role="button"
+            tabIndex={0}
             style={{
               gridColumn: block.lane + 1,
               gridRow: `${block.startIndex + 1} / span ${block.span}`,
             }}
-            className={`m-1 flex flex-col overflow-hidden rounded-lg border text-left transition-opacity ${
+            className={`m-1 flex cursor-pointer flex-col overflow-hidden rounded-lg border text-left transition-opacity ${
               isUndecided
                 ? "border-rose-300 bg-rose-50"
                 : "border-indigo-200 bg-indigo-50"
             } ${isDimmed ? "opacity-30" : ""} ${
               isHighlighted ? "ring-2 ring-amber-400" : ""
-            }`}
+            } hover:brightness-95`}
           >
             <div
               className={`flex items-center justify-between gap-1 px-1.5 pt-1 text-[11px] font-semibold ${
@@ -90,29 +99,29 @@ export default function TimetableDateColumn({
             </div>
             <div className="flex flex-1 flex-col overflow-y-auto">
               {block.entries.map((entry) => (
-                <button
+                <div
                   key={entry.lesson.id}
-                  onClick={() => onView(entry.period.id, entry.lesson)}
-                  className="flex flex-col gap-0.5 border-t border-white/70 px-1.5 py-1 text-left text-[11px] leading-tight text-slate-600 first:border-t-0 hover:bg-white/70"
+                  className="flex flex-col gap-0.5 border-t border-white/70 px-1.5 py-1 text-left text-[11px] leading-tight text-slate-600 first:border-t-0"
                 >
                   <span className="flex items-center justify-between gap-1 font-medium text-slate-500">
                     <span>{entry.period.label}</span>
                     <span className="shrink-0 text-[10px] text-slate-400">{entry.lesson.location}</span>
                   </span>
                   <span className="truncate text-slate-500">{studentsLabel(entry.lesson)}</span>
-                </button>
+                </div>
               ))}
             </div>
             {canContinue && (
               <button
-                onClick={() =>
+                onClick={(e) => {
+                  e.stopPropagation();
                   onContinue(periods[nextIndex].id, {
                     teacherId: block.teacherId,
                     subject: block.subject,
                     studentIds: lastEntry.lesson.studentIds,
                     location: lastEntry.lesson.location,
-                  })
-                }
+                  });
+                }}
                 className="border-t border-white/70 px-1.5 py-1 text-[10px] text-slate-400 hover:bg-white/70 hover:text-indigo-600"
               >
                 + 続けて追加

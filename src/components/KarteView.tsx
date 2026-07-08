@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { KarteEntry, Student, Teacher } from "@/types";
 import { currentGrade } from "@/lib/gradeUtils";
 import KarteEntryModal from "./KarteEntryModal";
@@ -10,12 +10,25 @@ interface Props {
   teachers: Teacher[];
   karteEntries: KarteEntry[];
   onAddEntry: (entry: KarteEntry) => void;
+  initialStudentId?: string | null;
 }
 
-export default function KarteView({ students, teachers, karteEntries, onAddEntry }: Props) {
+export default function KarteView({
+  students,
+  teachers,
+  karteEntries,
+  onAddEntry,
+  initialStudentId,
+}: Props) {
   const [search, setSearch] = useState("");
-  const [selectedId, setSelectedId] = useState<string | null>(students[0]?.id ?? null);
+  const [selectedId, setSelectedId] = useState<string | null>(
+    initialStudentId ?? students[0]?.id ?? null
+  );
   const [showModal, setShowModal] = useState(false);
+
+  useEffect(() => {
+    if (initialStudentId) setSelectedId(initialStudentId);
+  }, [initialStudentId]);
 
   const filteredStudents = useMemo(() => {
     const term = search.trim().toLowerCase();

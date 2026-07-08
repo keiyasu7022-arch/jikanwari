@@ -4,7 +4,7 @@ import { useState } from "react";
 import Modal from "./Modal";
 import { Lesson, PERIODS, Student, Teacher, WORK_LOCATIONS, WorkLocation } from "@/types";
 import { generateId } from "@/lib/utils";
-import { todayISO } from "@/lib/dateUtils";
+import { addDays, parseISODate, todayISO, toISODate } from "@/lib/dateUtils";
 import { currentGrade } from "@/lib/gradeUtils";
 
 interface Props {
@@ -57,6 +57,10 @@ export default function LessonFormModal({
   const [studentIdsByPeriod, setStudentIdsByPeriod] = useState<Record<number, string[]>>(
     periodId ? { [periodId]: defaultStudentIds ?? [] } : {}
   );
+
+  // 曜日固定で毎週繰り返し登録する場合の設定（新規作成時のみ）
+  const [repeatEnabled, setRepeatEnabled] = useState(false);
+  const [repeatUntil, setRepeatUntil] = useState("");
 
   const isEditing = Boolean(lesson);
 
@@ -127,15 +131,32 @@ export default function LessonFormModal({
       setError("選択した各コマに生徒を1人以上選択してください。");
       return;
     }
-    selectedPeriodIds.forEach((pid) => {
-      onSave({
-        id: generateId("l"),
-        date: selectedDate,
-        periodId: pid,
-        subject: subject.trim(),
-        teacherId: teacherId === "" ? null : teacherId,
-        studentIds: studentIdsByPeriod[pid] ?? [],
-        location,
+    if (repeatEnabled && (!repeatUntil || repeatUntil < selectedDate)) {
+      setError("繰り返し終了日を正しく入力してください。");
+      return;
+    }
+
+    const dates = [selectedDate];
+    if (repeatEnabled) {
+      let cursor = addDays(parseISODate(selectedDate), 7);
+      const end = parseISODate(repeatUntil);
+      while (cursor <= end) {
+        dates.push(toISODate(cursor));
+        cursor = addDays(cursor, 7);
+      }
+    }
+
+    dates.forEach((d) => {
+      selectedPeriodIds.forEach((pid) => {
+        onSave({
+          id: generateId("l"),
+          date: d,
+          periodId: pid,
+          subject: subject.trim(),
+          teacherId: teacherId === "" ? null : teacherId,
+          studentIds: studentIdsByPeriod[pid] ?? [],
+          location,
+        });
       });
     });
     onClose();
@@ -266,6 +287,33 @@ export default function LessonFormModal({
                   );
                 })}
               </div>
+            </div>
+
+            <div className="rounded-lg border border-slate-200 p-3">
+              <label className="flex items-center gap-2 text-sm font-medium text-slate-600">
+                <input
+                  type="checkbox"
+                  checked={repeatEnabled}
+                  onChange={(e) => setRepeatEnabled(e.target.checked)}
+                  className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                />
+                毎週繰り返す（曜日固定の生徒・講師向け）
+              </label>
+              {repeatEnabled && (
+                <div className="mt-2 flex items-center gap-2">
+                  <span className="text-sm text-slate-500">終了日</span>
+                  <input
+                    type="date"
+                    value={repeatUntil}
+                    min={selectedDate}
+                    onChange={(e) => setRepeatUntil(e.target.value)}
+                    className="rounded-lg border border-slate-300 px-2 py-1.5 text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                  />
+                  <span className="text-xs text-slate-400">
+                    まで、同じ曜日・コマで毎週登録します
+                  </span>
+                </div>
+              )}
             </div>
 
             {selectedPeriodIds.length > 0 && (
