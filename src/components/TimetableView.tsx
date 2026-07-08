@@ -3,7 +3,10 @@
 import { useMemo, useState } from "react";
 import { Lesson, PERIODS, Student, Teacher, WorkLocation } from "@/types";
 import LessonFormModal from "./LessonFormModal";
+import LessonDetailModal from "./LessonDetailModal";
+import PasswordPromptModal from "./PasswordPromptModal";
 import TimetableDateColumn, { ROW_HEIGHT } from "./TimetableDateColumn";
+import { useAuth } from "@/context/AuthContext";
 import {
   addDays,
   formatMonthDay,
@@ -39,9 +42,20 @@ export default function TimetableView({
   onSaveLesson,
   onDeleteLesson,
 }: Props) {
+  const { unlocked } = useAuth();
   const [search, setSearch] = useState("");
   const [weekStart, setWeekStart] = useState(() => getMonday(new Date()));
   const [editing, setEditing] = useState<EditingTarget | null>(null);
+  const [viewingLesson, setViewingLesson] = useState<Lesson | null>(null);
+  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
+
+  const requireAuth = (action: () => void) => {
+    if (unlocked) {
+      action();
+    } else {
+      setPendingAction(() => action);
+    }
+  };
 
   const weekDates = useMemo(
     () => Array.from({ length: 6 }, (_, i) => addDays(weekStart, i)),
@@ -140,7 +154,7 @@ export default function TimetableView({
             {formatMonthDayRange(weekDates[0], weekDates[weekDates.length - 1])}
           </span>
           <button
-            onClick={() => setEditing({})}
+            onClick={() => requireAuth(() => setEditing({}))}
             className="ml-2 rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700"
           >
             + コマ追加
@@ -204,16 +218,18 @@ export default function TimetableView({
                     teacherMap={teacherMap}
                     studentMap={studentMap}
                     matchedLessonIds={matchedLessonIds}
-                    onEdit={(periodId, lesson) => setEditing({ date: iso, periodId, lesson })}
+                    onView={(_periodId, lesson) => setViewingLesson(lesson)}
                     onContinue={(periodId, prefill) =>
-                      setEditing({
-                        date: iso,
-                        periodId,
-                        defaultTeacherId: prefill.teacherId,
-                        defaultSubject: prefill.subject,
-                        defaultStudentIds: prefill.studentIds,
-                        defaultLocation: prefill.location,
-                      })
+                      requireAuth(() =>
+                        setEditing({
+                          date: iso,
+                          periodId,
+                          defaultTeacherId: prefill.teacherId,
+                          defaultSubject: prefill.subject,
+                          defaultStudentIds: prefill.studentIds,
+                          defaultLocation: prefill.location,
+                        })
+                      )
                     }
                   />
                 </div>
@@ -253,6 +269,38 @@ export default function TimetableView({
           onClose={() => setEditing(null)}
           onSave={onSaveLesson}
           onDelete={onDeleteLesson}
+        />
+      )}
+
+      {viewingLesson && (
+        <LessonDetailModal
+          lesson={viewingLesson}
+          period={PERIODS.find((p) => p.id === viewingLesson.periodId) ?? PERIODS[0]}
+          teacher={
+            viewingLesson.teacherId ? teacherMap.get(viewingLesson.teacherId) ?? null : null
+          }
+          students={viewingLesson.studentIds
+            .map((id) => studentMap.get(id))
+            .filter((s): s is Student => Boolean(s))}
+          onClose={() => setViewingLesson(null)}
+          onRequestEdit={() => {
+            const lesson = viewingLesson;
+            setViewingLesson(null);
+            requireAuth(() =>
+              setEditing({ date: lesson.date, periodId: lesson.periodId, lesson })
+            );
+          }}
+        />
+      )}
+
+      {pendingAction && (
+        <PasswordPromptModal
+          onClose={() => setPendingAction(null)}
+          onSuccess={() => {
+            const action = pendingAction;
+            setPendingAction(null);
+            action();
+          }}
         />
       )}
     </div>

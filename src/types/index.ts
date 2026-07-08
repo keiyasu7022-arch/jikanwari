@@ -46,7 +46,6 @@ export interface Teacher {
   id: string;
   name: string;
   hourlyWage: number;
-  subject: string;
 }
 
 export interface Student {

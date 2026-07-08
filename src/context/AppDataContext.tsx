@@ -22,7 +22,7 @@ interface AppDataValue {
 
 const AppDataContext = createContext<AppDataValue | null>(null);
 
-type TeacherRow = { id: string; name: string; hourly_wage: number; subject: string };
+type TeacherRow = { id: string; name: string; hourly_wage: number };
 type StudentRow = { id: string; name: string; grade: string; grade_year: number };
 type LessonRow = {
   id: string;
@@ -44,7 +44,7 @@ type KarteEntryRow = {
 };
 
 function teacherFromRow(row: TeacherRow): Teacher {
-  return { id: row.id, name: row.name, hourlyWage: row.hourly_wage, subject: row.subject };
+  return { id: row.id, name: row.name, hourlyWage: row.hourly_wage };
 }
 
 function studentFromRow(row: StudentRow): Student {
@@ -140,7 +140,6 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         id: teacher.id,
         name: teacher.name,
         hourly_wage: teacher.hourlyWage,
-        subject: teacher.subject,
       })
       .then(({ error }) => error && console.error("saveTeacher failed:", error));
   };

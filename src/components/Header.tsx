@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 
 const NAV_ITEMS = [
   { href: "/", label: "時間割", icon: "🗓️" },
@@ -12,12 +13,24 @@ const NAV_ITEMS = [
 
 export default function Header() {
   const pathname = usePathname();
+  const { unlocked, lock } = useAuth();
 
   return (
     <header className="border-b border-slate-200 bg-white">
-      <div className="mx-auto max-w-6xl px-4 py-4 sm:px-6">
-        <h1 className="text-xl font-bold text-slate-800">塾管理システム</h1>
-        <p className="text-sm text-slate-400">時間割・指導カルテ・給与管理</p>
+      <div className="mx-auto flex max-w-6xl items-start justify-between px-4 py-4 sm:px-6">
+        <div>
+          <h1 className="text-xl font-bold text-slate-800">塾管理システム</h1>
+          <p className="text-sm text-slate-400">時間割・指導カルテ・給与管理</p>
+        </div>
+        {unlocked && (
+          <button
+            onClick={lock}
+            title="編集権限をロックする"
+            className="flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-500 hover:bg-slate-50"
+          >
+            🔓 <span className="hidden sm:inline">ロックする</span>
+          </button>
+        )}
       </div>
       <nav className="mx-auto flex max-w-6xl gap-1 px-2 sm:px-6">
         {NAV_ITEMS.map((item) => {

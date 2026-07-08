@@ -11,7 +11,7 @@ interface Props {
   teacherMap: Map<string, Teacher>;
   studentMap: Map<string, Student>;
   matchedLessonIds: Set<string> | null;
-  onEdit: (periodId: number, lesson: Lesson) => void;
+  onView: (periodId: number, lesson: Lesson) => void;
   onContinue: (
     periodId: number,
     prefill: {
@@ -29,7 +29,7 @@ export default function TimetableDateColumn({
   teacherMap,
   studentMap,
   matchedLessonIds,
-  onEdit,
+  onView,
   onContinue,
 }: Props) {
   const { blocks, laneCount } = buildDayBlocks(lessons, periods);
@@ -92,7 +92,7 @@ export default function TimetableDateColumn({
               {block.entries.map((entry) => (
                 <button
                   key={entry.lesson.id}
-                  onClick={() => onEdit(entry.period.id, entry.lesson)}
+                  onClick={() => onView(entry.period.id, entry.lesson)}
                   className="flex flex-col gap-0.5 border-t border-white/70 px-1.5 py-1 text-left text-[11px] leading-tight text-slate-600 first:border-t-0 hover:bg-white/70"
                 >
                   <span className="flex items-center justify-between gap-1 font-medium text-slate-500">

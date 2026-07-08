@@ -207,7 +207,7 @@ export default function LessonFormModal({
             <option value="">⚠ 講師未定</option>
             {teachers.map((t) => (
               <option key={t.id} value={t.id}>
-                {t.name}（{t.subject}）
+                {t.name}
               </option>
             ))}
           </select>

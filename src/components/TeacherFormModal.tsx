@@ -13,19 +13,17 @@ interface Props {
 
 export default function TeacherFormModal({ teacher, onClose, onSave }: Props) {
   const [name, setName] = useState(teacher?.name ?? "");
-  const [subject, setSubject] = useState(teacher?.subject ?? "");
   const [hourlyWage, setHourlyWage] = useState(teacher?.hourlyWage ?? 2000);
   const [error, setError] = useState("");
 
   const handleSubmit = () => {
-    if (!name.trim() || !subject.trim()) {
-      setError("氏名と担当科目は必須です。");
+    if (!name.trim()) {
+      setError("氏名は必須です。");
       return;
     }
     onSave({
       id: teacher?.id ?? generateId("t"),
       name: name.trim(),
-      subject: subject.trim(),
       hourlyWage,
     });
     onClose();
@@ -39,14 +37,6 @@ export default function TeacherFormModal({ teacher, onClose, onSave }: Props) {
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-          />
-        </div>
-        <div>
-          <label className="mb-1 block text-sm font-medium text-slate-600">担当科目</label>
-          <input
-            value={subject}
-            onChange={(e) => setSubject(e.target.value)}
             className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
           />
         </div>
