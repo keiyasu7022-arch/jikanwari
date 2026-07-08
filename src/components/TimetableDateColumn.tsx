@@ -11,11 +11,15 @@ interface Props {
   teacherMap: Map<string, Teacher>;
   studentMap: Map<string, Student>;
   matchedLessonIds: Set<string> | null;
-  onAdd: (periodId: number) => void;
   onEdit: (periodId: number, lesson: Lesson) => void;
   onContinue: (
     periodId: number,
-    prefill: { teacherId: string | null; subject: string; studentIds: string[] }
+    prefill: {
+      teacherId: string | null;
+      subject: string;
+      studentIds: string[];
+      location: Lesson["location"];
+    }
   ) => void;
 }
 
@@ -25,14 +29,12 @@ export default function TimetableDateColumn({
   teacherMap,
   studentMap,
   matchedLessonIds,
-  onAdd,
   onEdit,
   onContinue,
 }: Props) {
   const { blocks, laneCount } = buildDayBlocks(lessons, periods);
-  const renderLaneCount = laneCount + 1; // 新規コマ追加用の予備レーン
 
-  const occupied: boolean[][] = periods.map(() => Array(renderLaneCount).fill(false));
+  const occupied: boolean[][] = periods.map(() => Array(laneCount).fill(false));
   for (const block of blocks) {
     for (let i = block.startIndex; i < block.startIndex + block.span; i++) {
       occupied[i][block.lane] = true;
@@ -49,7 +51,7 @@ export default function TimetableDateColumn({
     <div
       className="grid"
       style={{
-        gridTemplateColumns: `repeat(${renderLaneCount}, minmax(0, 1fr))`,
+        gridTemplateColumns: `repeat(${laneCount}, minmax(0, 1fr))`,
         gridTemplateRows: `repeat(${periods.length}, ${ROW_HEIGHT}px)`,
       }}
     >
@@ -93,7 +95,10 @@ export default function TimetableDateColumn({
                   onClick={() => onEdit(entry.period.id, entry.lesson)}
                   className="flex flex-col gap-0.5 border-t border-white/70 px-1.5 py-1 text-left text-[11px] leading-tight text-slate-600 first:border-t-0 hover:bg-white/70"
                 >
-                  <span className="font-medium text-slate-500">{entry.period.label}</span>
+                  <span className="flex items-center justify-between gap-1 font-medium text-slate-500">
+                    <span>{entry.period.label}</span>
+                    <span className="shrink-0 text-[10px] text-slate-400">{entry.lesson.location}</span>
+                  </span>
                   <span className="truncate text-slate-500">{studentsLabel(entry.lesson)}</span>
                 </button>
               ))}
@@ -105,6 +110,7 @@ export default function TimetableDateColumn({
                     teacherId: block.teacherId,
                     subject: block.subject,
                     studentIds: lastEntry.lesson.studentIds,
+                    location: lastEntry.lesson.location,
                   })
                 }
                 className="border-t border-white/70 px-1.5 py-1 text-[10px] text-slate-400 hover:bg-white/70 hover:text-indigo-600"
@@ -115,22 +121,6 @@ export default function TimetableDateColumn({
           </div>
         );
       })}
-
-      {periods.map((period, rIdx) =>
-        Array.from({ length: renderLaneCount }).map((_, lane) => {
-          if (occupied[rIdx][lane]) return null;
-          return (
-            <button
-              key={`${period.id}-${lane}`}
-              style={{ gridColumn: lane + 1, gridRow: rIdx + 1 }}
-              onClick={() => onAdd(period.id)}
-              className="m-1 rounded-lg border border-dashed border-slate-200 text-[11px] text-slate-400 hover:border-indigo-300 hover:text-indigo-500"
-            >
-              + コマ追加
-            </button>
-          );
-        })
-      )}
     </div>
   );
 }

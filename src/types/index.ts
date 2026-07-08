@@ -47,7 +47,6 @@ export interface Teacher {
   name: string;
   hourlyWage: number;
   subject: string;
-  location: WorkLocation;
 }
 
 export interface Student {
@@ -64,6 +63,7 @@ export interface Lesson {
   subject: string;
   teacherId: string | null; // null = 講師未定
   studentIds: string[];
+  location: WorkLocation;
 }
 
 export interface KarteEntry {

@@ -2,20 +2,21 @@
 
 import { useState } from "react";
 import Modal from "./Modal";
-import { Lesson, PERIODS, Student, Teacher } from "@/types";
+import { Lesson, PERIODS, Student, Teacher, WORK_LOCATIONS, WorkLocation } from "@/types";
 import { generateId } from "@/lib/utils";
-import { parseISODate, weekdayLabel } from "@/lib/dateUtils";
+import { todayISO } from "@/lib/dateUtils";
 import { currentGrade } from "@/lib/gradeUtils";
 
 interface Props {
-  date: string;
-  periodId: number;
+  date?: string;
+  periodId?: number;
   teachers: Teacher[];
   students: Student[];
   lesson?: Lesson;
   defaultTeacherId?: string | null;
   defaultSubject?: string;
   defaultStudentIds?: string[];
+  defaultLocation?: WorkLocation;
   onClose: () => void;
   onSave: (lesson: Lesson) => void;
   onDelete?: (id: string) => void;
@@ -30,10 +31,13 @@ export default function LessonFormModal({
   defaultTeacherId,
   defaultSubject,
   defaultStudentIds,
+  defaultLocation,
   onClose,
   onSave,
   onDelete,
 }: Props) {
+  const [selectedDate, setSelectedDate] = useState(date ?? todayISO());
+  const [selectedPeriodId, setSelectedPeriodId] = useState(periodId ?? PERIODS[0].id);
   const [subject, setSubject] = useState(lesson?.subject ?? defaultSubject ?? "");
   const [teacherId, setTeacherId] = useState<string>(
     lesson?.teacherId ?? defaultTeacherId ?? ""
@@ -41,11 +45,10 @@ export default function LessonFormModal({
   const [studentIds, setStudentIds] = useState<string[]>(
     lesson?.studentIds ?? defaultStudentIds ?? []
   );
+  const [location, setLocation] = useState<WorkLocation>(
+    lesson?.location ?? defaultLocation ?? WORK_LOCATIONS[0]
+  );
   const [error, setError] = useState("");
-
-  const period = PERIODS.find((p) => p.id === periodId);
-  const dateObj = parseISODate(date);
-  const dateLabel = `${dateObj.getMonth() + 1}/${dateObj.getDate()}（${weekdayLabel(dateObj)}）`;
 
   const toggleStudent = (id: string) => {
     setStudentIds((prev) =>
@@ -64,18 +67,60 @@ export default function LessonFormModal({
     }
     onSave({
       id: lesson?.id ?? generateId("l"),
-      date,
-      periodId,
+      date: selectedDate,
+      periodId: selectedPeriodId,
       subject: subject.trim(),
       teacherId: teacherId === "" ? null : teacherId,
       studentIds,
+      location,
     });
     onClose();
   };
 
   return (
-    <Modal title={`${dateLabel} ${period?.label ?? ""} の授業`} onClose={onClose}>
+    <Modal title={lesson ? "コマを編集" : "コマを追加"} onClose={onClose}>
       <div className="space-y-4">
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-600">日付</label>
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-600">コマ</label>
+            <select
+              value={selectedPeriodId}
+              onChange={(e) => setSelectedPeriodId(Number(e.target.value))}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+            >
+              {PERIODS.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.label}（{p.time}）
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label className="mb-1 block text-sm font-medium text-slate-600">場所</label>
+          <select
+            value={location}
+            onChange={(e) => setLocation(e.target.value as WorkLocation)}
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+          >
+            {WORK_LOCATIONS.map((loc) => (
+              <option key={loc} value={loc}>
+                {loc}
+              </option>
+            ))}
+          </select>
+        </div>
+
         <div>
           <label className="mb-1 block text-sm font-medium text-slate-600">科目</label>
           <input

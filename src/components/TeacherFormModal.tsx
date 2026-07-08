@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Modal from "./Modal";
-import { Teacher, WORK_LOCATIONS, WorkLocation } from "@/types";
+import { Teacher } from "@/types";
 import { generateId } from "@/lib/utils";
 
 interface Props {
@@ -15,9 +15,6 @@ export default function TeacherFormModal({ teacher, onClose, onSave }: Props) {
   const [name, setName] = useState(teacher?.name ?? "");
   const [subject, setSubject] = useState(teacher?.subject ?? "");
   const [hourlyWage, setHourlyWage] = useState(teacher?.hourlyWage ?? 2000);
-  const [location, setLocation] = useState<WorkLocation>(
-    teacher?.location ?? WORK_LOCATIONS[0]
-  );
   const [error, setError] = useState("");
 
   const handleSubmit = () => {
@@ -30,7 +27,6 @@ export default function TeacherFormModal({ teacher, onClose, onSave }: Props) {
       name: name.trim(),
       subject: subject.trim(),
       hourlyWage,
-      location,
     });
     onClose();
   };
@@ -53,20 +49,6 @@ export default function TeacherFormModal({ teacher, onClose, onSave }: Props) {
             onChange={(e) => setSubject(e.target.value)}
             className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
           />
-        </div>
-        <div>
-          <label className="mb-1 block text-sm font-medium text-slate-600">勤務地</label>
-          <select
-            value={location}
-            onChange={(e) => setLocation(e.target.value as WorkLocation)}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-          >
-            {WORK_LOCATIONS.map((loc) => (
-              <option key={loc} value={loc}>
-                {loc}
-              </option>
-            ))}
-          </select>
         </div>
         <div>
           <label className="mb-1 block text-sm font-medium text-slate-600">時給（円）</label>

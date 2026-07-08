@@ -50,7 +50,6 @@ export default function ManageView({
               <tr className="bg-slate-50 text-left text-xs font-semibold text-slate-500">
                 <th className="border-b border-slate-200 px-4 py-3">氏名</th>
                 <th className="border-b border-slate-200 px-4 py-3">担当科目</th>
-                <th className="border-b border-slate-200 px-4 py-3">勤務地</th>
                 <th className="border-b border-slate-200 px-4 py-3">時給</th>
                 <th className="border-b border-slate-200 px-4 py-3 text-right">操作</th>
               </tr>
@@ -63,11 +62,6 @@ export default function ManageView({
                   </td>
                   <td className="border-b border-slate-100 px-4 py-3 text-slate-500">
                     {t.subject}
-                  </td>
-                  <td className="border-b border-slate-100 px-4 py-3 text-slate-500">
-                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
-                      {t.location}
-                    </span>
                   </td>
                   <td className="border-b border-slate-100 px-4 py-3 text-slate-500">
                     {formatYen(t.hourlyWage)} / 時

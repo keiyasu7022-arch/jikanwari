@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Lesson, PERIODS, Student, Teacher } from "@/types";
+import { Lesson, PERIODS, Student, Teacher, WorkLocation } from "@/types";
 import LessonFormModal from "./LessonFormModal";
 import TimetableDateColumn, { ROW_HEIGHT } from "./TimetableDateColumn";
 import {
@@ -23,12 +23,13 @@ interface Props {
 }
 
 interface EditingTarget {
-  date: string;
-  periodId: number;
+  date?: string;
+  periodId?: number;
   lesson?: Lesson;
   defaultTeacherId?: string | null;
   defaultSubject?: string;
   defaultStudentIds?: string[];
+  defaultLocation?: WorkLocation;
 }
 
 export default function TimetableView({
@@ -138,6 +139,12 @@ export default function TimetableView({
           <span className="ml-1 text-sm font-medium text-slate-600">
             {formatMonthDayRange(weekDates[0], weekDates[weekDates.length - 1])}
           </span>
+          <button
+            onClick={() => setEditing({})}
+            className="ml-2 rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700"
+          >
+            + コマ追加
+          </button>
         </div>
       </div>
 
@@ -197,7 +204,6 @@ export default function TimetableView({
                     teacherMap={teacherMap}
                     studentMap={studentMap}
                     matchedLessonIds={matchedLessonIds}
-                    onAdd={(periodId) => setEditing({ date: iso, periodId })}
                     onEdit={(periodId, lesson) => setEditing({ date: iso, periodId, lesson })}
                     onContinue={(periodId, prefill) =>
                       setEditing({
@@ -206,6 +212,7 @@ export default function TimetableView({
                         defaultTeacherId: prefill.teacherId,
                         defaultSubject: prefill.subject,
                         defaultStudentIds: prefill.studentIds,
+                        defaultLocation: prefill.location,
                       })
                     }
                   />
@@ -242,6 +249,7 @@ export default function TimetableView({
           defaultTeacherId={editing.defaultTeacherId}
           defaultSubject={editing.defaultSubject}
           defaultStudentIds={editing.defaultStudentIds}
+          defaultLocation={editing.defaultLocation}
           onClose={() => setEditing(null)}
           onSave={onSaveLesson}
           onDelete={onDeleteLesson}
