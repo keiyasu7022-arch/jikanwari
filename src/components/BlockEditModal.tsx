@@ -2,20 +2,21 @@
 
 import { useState } from "react";
 import Modal from "./Modal";
-import { Lesson, Teacher, WORK_LOCATIONS, WorkLocation } from "@/types";
+import { Lesson, Location, Teacher } from "@/types";
 import { LessonBlock } from "@/lib/calendarLayout";
 
 interface Props {
   block: LessonBlock;
   teachers: Teacher[];
+  locations: Location[];
   onClose: () => void;
   onSave: (updatedLessons: Lesson[]) => void;
 }
 
-export default function BlockEditModal({ block, teachers, onClose, onSave }: Props) {
+export default function BlockEditModal({ block, teachers, locations, onClose, onSave }: Props) {
   const [subject, setSubject] = useState(block.subject);
   const [teacherId, setTeacherId] = useState<string>(block.teacherId ?? "");
-  const [location, setLocation] = useState<WorkLocation>(block.entries[0].lesson.location);
+  const [location, setLocation] = useState<string>(block.entries[0].lesson.location);
   const [error, setError] = useState("");
 
   const isMulti = block.entries.length > 1;
@@ -50,12 +51,12 @@ export default function BlockEditModal({ block, teachers, onClose, onSave }: Pro
           <label className="mb-1 block text-sm font-medium text-slate-600">場所</label>
           <select
             value={location}
-            onChange={(e) => setLocation(e.target.value as WorkLocation)}
+            onChange={(e) => setLocation(e.target.value)}
             className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
           >
-            {WORK_LOCATIONS.map((loc) => (
-              <option key={loc} value={loc}>
-                {loc}
+            {locations.map((loc) => (
+              <option key={loc.id} value={loc.name}>
+                {loc.name}
               </option>
             ))}
           </select>

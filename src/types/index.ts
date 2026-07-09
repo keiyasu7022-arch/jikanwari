@@ -39,8 +39,13 @@ export const PERIODS: Period[] = generatePeriods();
 // 1コマあたりの授業時間（時間）。給与計算に使用。
 export const LESSON_DURATION_HOURS = LESSON_MINUTES / 60;
 
-export const WORK_LOCATIONS = ["桑山", "総本陣"] as const;
-export type WorkLocation = (typeof WORK_LOCATIONS)[number];
+export const DEFAULT_LOCATION_COLOR = "#6366f1";
+
+export interface Location {
+  id: string;
+  name: string;
+  color: string; // 例: "#6366f1"
+}
 
 export interface Teacher {
   id: string;
@@ -62,7 +67,7 @@ export interface Lesson {
   subject: string;
   teacherId: string | null; // null = 講師未定
   studentIds: string[];
-  location: WorkLocation;
+  location: string; // Location.name を参照（自由文字列として保持）
 }
 
 export interface KarteEntry {

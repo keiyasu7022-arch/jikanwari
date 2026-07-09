@@ -2,14 +2,17 @@
 
 import { Lesson, Period, Student, Teacher } from "@/types";
 import { buildDayBlocks, LessonBlock } from "@/lib/calendarLayout";
+import { hexToRgba } from "@/lib/utils";
 
 const ROW_HEIGHT = 92;
+const FALLBACK_LOCATION_COLOR = "#94a3b8";
 
 interface Props {
   lessons: Lesson[];
   periods: Period[];
   teacherMap: Map<string, Teacher>;
   studentMap: Map<string, Student>;
+  locationColorMap: Map<string, string>;
   matchedLessonIds: Set<string> | null;
   onViewBlock: (block: LessonBlock) => void;
   onContinue: (
@@ -28,6 +31,7 @@ export default function TimetableDateColumn({
   periods,
   teacherMap,
   studentMap,
+  locationColorMap,
   matchedLessonIds,
   onViewBlock,
   onContinue,
@@ -64,6 +68,8 @@ export default function TimetableDateColumn({
         const canContinue = nextIndex < periods.length && !occupied[nextIndex][block.lane];
         const lastEntry = block.entries[block.entries.length - 1];
         const teacherName = isUndecided ? null : teacherMap.get(block.teacherId!)?.name;
+        const locationColor =
+          locationColorMap.get(block.entries[0].lesson.location) ?? FALLBACK_LOCATION_COLOR;
 
         return (
           <div
@@ -80,18 +86,18 @@ export default function TimetableDateColumn({
             style={{
               gridColumn: block.lane + 1,
               gridRow: `${block.startIndex + 1} / span ${block.span}`,
+              backgroundColor: hexToRgba(locationColor, 0.14),
+              borderColor: locationColor,
             }}
             className={`m-1 flex cursor-pointer flex-col overflow-hidden rounded-lg border text-left transition-opacity ${
-              isUndecided
-                ? "border-rose-300 bg-rose-50"
-                : "border-indigo-200 bg-indigo-50"
+              isUndecided ? "ring-2 ring-rose-400" : ""
             } ${isDimmed ? "opacity-30" : ""} ${
               isHighlighted ? "ring-2 ring-amber-400" : ""
             } hover:brightness-95`}
           >
             <div
               className={`flex items-center justify-between gap-1 px-1.5 pt-1 text-[11px] font-semibold ${
-                isUndecided ? "text-rose-600" : "text-indigo-700"
+                isUndecided ? "text-rose-600" : "text-slate-700"
               }`}
             >
               <span className="truncate">{isUndecided ? "⚠ 講師未定" : teacherName}</span>
@@ -105,7 +111,16 @@ export default function TimetableDateColumn({
                 >
                   <span className="flex items-center justify-between gap-1 font-medium text-slate-500">
                     <span>{entry.period.label}</span>
-                    <span className="shrink-0 text-[10px] text-slate-400">{entry.lesson.location}</span>
+                    <span className="flex shrink-0 items-center gap-1 text-[10px] text-slate-400">
+                      <span
+                        className="h-1.5 w-1.5 rounded-full"
+                        style={{
+                          backgroundColor:
+                            locationColorMap.get(entry.lesson.location) ?? FALLBACK_LOCATION_COLOR,
+                        }}
+                      />
+                      {entry.lesson.location}
+                    </span>
                   </span>
                   <span className="truncate text-slate-500">{studentsLabel(entry.lesson)}</span>
                 </div>

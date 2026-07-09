@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, ReactNode, useContext, useEffect, useState } from "react";
-import { KarteEntry, Lesson, Student, Teacher } from "@/types";
+import { KarteEntry, Lesson, Location, Student, Teacher } from "@/types";
 import { supabase } from "@/lib/supabaseClient";
 
 interface AppDataValue {
@@ -10,6 +10,7 @@ interface AppDataValue {
   students: Student[];
   lessons: Lesson[];
   karteEntries: KarteEntry[];
+  locations: Location[];
   saveLesson: (lesson: Lesson) => void;
   deleteLesson: (id: string) => void;
   saveTeacher: (teacher: Teacher) => void;
@@ -18,6 +19,8 @@ interface AppDataValue {
   saveStudent: (student: Student) => void;
   deleteStudent: (id: string) => void;
   addKarteEntry: (entry: KarteEntry) => void;
+  saveLocation: (location: Location) => void;
+  deleteLocation: (id: string) => void;
 }
 
 const AppDataContext = createContext<AppDataValue | null>(null);
@@ -42,6 +45,7 @@ type KarteEntryRow = {
   content: string;
   next_goal: string;
 };
+type LocationRow = { id: string; name: string; color: string };
 
 function teacherFromRow(row: TeacherRow): Teacher {
   return { id: row.id, name: row.name, hourlyWage: row.hourly_wage };
@@ -75,26 +79,33 @@ function karteEntryFromRow(row: KarteEntryRow): KarteEntry {
   };
 }
 
+function locationFromRow(row: LocationRow): Location {
+  return { id: row.id, name: row.name, color: row.color };
+}
+
 export function AppDataProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [karteEntries, setKarteEntries] = useState<KarteEntry[]>([]);
+  const [locations, setLocations] = useState<Location[]>([]);
 
   useEffect(() => {
     async function load() {
-      const [teachersRes, studentsRes, lessonsRes, karteRes] = await Promise.all([
+      const [teachersRes, studentsRes, lessonsRes, karteRes, locationsRes] = await Promise.all([
         supabase.from("teachers").select("*"),
         supabase.from("students").select("*"),
         supabase.from("lessons").select("*"),
         supabase.from("karte_entries").select("*").order("date", { ascending: false }),
+        supabase.from("locations").select("*").order("name", { ascending: true }),
       ]);
 
       if (teachersRes.data) setTeachers(teachersRes.data.map(teacherFromRow));
       if (studentsRes.data) setStudents(studentsRes.data.map(studentFromRow));
       if (lessonsRes.data) setLessons(lessonsRes.data.map(lessonFromRow));
       if (karteRes.data) setKarteEntries(karteRes.data.map(karteEntryFromRow));
+      if (locationsRes.data) setLocations(locationsRes.data.map(locationFromRow));
 
       setLoading(false);
     }
@@ -235,6 +246,28 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       .then(({ error }) => error && console.error("addKarteEntry failed:", error));
   };
 
+  const saveLocation = (location: Location) => {
+    setLocations((prev) => {
+      const exists = prev.some((l) => l.id === location.id);
+      return exists
+        ? prev.map((l) => (l.id === location.id ? location : l))
+        : [...prev, location];
+    });
+    supabase
+      .from("locations")
+      .upsert({ id: location.id, name: location.name, color: location.color })
+      .then(({ error }) => error && console.error("saveLocation failed:", error));
+  };
+
+  const deleteLocation = (id: string) => {
+    setLocations((prev) => prev.filter((l) => l.id !== id));
+    supabase
+      .from("locations")
+      .delete()
+      .eq("id", id)
+      .then(({ error }) => error && console.error("deleteLocation failed:", error));
+  };
+
   return (
     <AppDataContext.Provider
       value={{
@@ -243,6 +276,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         students,
         lessons,
         karteEntries,
+        locations,
         saveLesson,
         deleteLesson,
         saveTeacher,
@@ -251,6 +285,8 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         saveStudent,
         deleteStudent,
         addKarteEntry,
+        saveLocation,
+        deleteLocation,
       }}
     >
       {loading ? (

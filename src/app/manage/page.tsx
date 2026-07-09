@@ -8,10 +8,13 @@ export default function ManagePage() {
   const {
     teachers,
     students,
+    locations,
     saveTeacher,
     deleteTeacher,
     saveStudent,
     deleteStudent,
+    saveLocation,
+    deleteLocation,
   } = useAppData();
 
   return (
@@ -19,10 +22,13 @@ export default function ManagePage() {
       <ManageView
         teachers={teachers}
         students={students}
+        locations={locations}
         onSaveTeacher={saveTeacher}
         onDeleteTeacher={deleteTeacher}
         onSaveStudent={saveStudent}
         onDeleteStudent={deleteStudent}
+        onSaveLocation={saveLocation}
+        onDeleteLocation={deleteLocation}
       />
     </PasswordGate>
   );

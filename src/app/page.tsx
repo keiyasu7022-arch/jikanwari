@@ -4,7 +4,8 @@ import { useAppData } from "@/context/AppDataContext";
 import TimetableView from "@/components/TimetableView";
 
 export default function TimetablePage() {
-  const { teachers, students, lessons, karteEntries, saveLesson, deleteLesson } = useAppData();
+  const { teachers, students, lessons, karteEntries, locations, saveLesson, deleteLesson } =
+    useAppData();
 
   return (
     <TimetableView
@@ -12,6 +13,7 @@ export default function TimetablePage() {
       students={students}
       lessons={lessons}
       karteEntries={karteEntries}
+      locations={locations}
       onSaveLesson={saveLesson}
       onDeleteLesson={deleteLesson}
     />

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Modal from "./Modal";
-import { Lesson, PERIODS, Student, Teacher, WORK_LOCATIONS, WorkLocation } from "@/types";
+import { Lesson, Location, PERIODS, Student, Teacher } from "@/types";
 import { generateId } from "@/lib/utils";
 import { addDays, parseISODate, todayISO, toISODate } from "@/lib/dateUtils";
 import { currentGrade } from "@/lib/gradeUtils";
@@ -18,11 +18,12 @@ interface Props {
   periodId?: number;
   teachers: Teacher[];
   students: Student[];
+  locations: Location[];
   lesson?: Lesson;
   defaultTeacherId?: string | null;
   defaultSubject?: string;
   defaultStudentIds?: string[];
-  defaultLocation?: WorkLocation;
+  defaultLocation?: string;
   onClose: () => void;
   onSave: (lesson: Lesson) => void;
   onDelete?: (id: string) => void;
@@ -33,6 +34,7 @@ export default function LessonFormModal({
   periodId,
   teachers,
   students,
+  locations,
   lesson,
   defaultTeacherId,
   defaultSubject,
@@ -47,8 +49,8 @@ export default function LessonFormModal({
   const [teacherId, setTeacherId] = useState<string>(
     lesson?.teacherId ?? defaultTeacherId ?? ""
   );
-  const [location, setLocation] = useState<WorkLocation>(
-    lesson?.location ?? defaultLocation ?? WORK_LOCATIONS[0]
+  const [location, setLocation] = useState<string>(
+    lesson?.location ?? defaultLocation ?? locations[0]?.name ?? ""
   );
   const [error, setError] = useState("");
 
@@ -260,12 +262,12 @@ export default function LessonFormModal({
           <label className="mb-1 block text-sm font-medium text-slate-600">場所</label>
           <select
             value={location}
-            onChange={(e) => setLocation(e.target.value as WorkLocation)}
+            onChange={(e) => setLocation(e.target.value)}
             className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
           >
-            {WORK_LOCATIONS.map((loc) => (
-              <option key={loc} value={loc}>
-                {loc}
+            {locations.map((loc) => (
+              <option key={loc.id} value={loc.name}>
+                {loc.name}
               </option>
             ))}
           </select>

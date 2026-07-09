@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { KarteEntry, Lesson, PERIODS, Period, Student, Teacher, WorkLocation } from "@/types";
+import { KarteEntry, Lesson, Location, PERIODS, Period, Student, Teacher } from "@/types";
 import LessonFormModal from "./LessonFormModal";
 import BlockDetailModal from "./BlockDetailModal";
 import BlockEditModal from "./BlockEditModal";
@@ -19,12 +19,14 @@ import {
   todayISO,
   weekdayLabel,
 } from "@/lib/dateUtils";
+import { getHolidayName } from "@/lib/holidayUtils";
 
 interface Props {
   teachers: Teacher[];
   students: Student[];
   lessons: Lesson[];
   karteEntries: KarteEntry[];
+  locations: Location[];
   onSaveLesson: (lesson: Lesson) => void;
   onDeleteLesson: (id: string) => void;
 }
@@ -36,7 +38,7 @@ interface EditingTarget {
   defaultTeacherId?: string | null;
   defaultSubject?: string;
   defaultStudentIds?: string[];
-  defaultLocation?: WorkLocation;
+  defaultLocation?: string;
 }
 
 export default function TimetableView({
@@ -44,6 +46,7 @@ export default function TimetableView({
   students,
   lessons,
   karteEntries,
+  locations,
   onSaveLesson,
   onDeleteLesson,
 }: Props) {
@@ -77,6 +80,10 @@ export default function TimetableView({
   const studentMap = useMemo(
     () => new Map(students.map((s) => [s.id, s])),
     [students]
+  );
+  const locationColorMap = useMemo(
+    () => new Map(locations.map((l) => [l.name, l.color])),
+    [locations]
   );
 
   const lessonsByDate = useMemo(() => {
@@ -212,18 +219,24 @@ export default function TimetableView({
             {weekDates.map((date) => {
               const iso = toISODate(date);
               const isToday = iso === today;
+              const holidayName = getHolidayName(date);
               return (
                 <div
                   key={iso}
                   className={`px-3 py-3 text-center text-xs font-semibold ${
-                    isToday ? "text-indigo-600" : "text-slate-500"
-                  }`}
+                    isToday ? "text-indigo-600" : holidayName ? "text-rose-500" : "text-slate-500"
+                  } ${holidayName ? "bg-rose-50/60" : ""}`}
                 >
                   {formatMonthDay(date)}（{weekdayLabel(date)}）
                   {isToday && (
                     <span className="ml-1 rounded-full bg-indigo-100 px-1.5 py-0.5 text-[10px] text-indigo-600">
                       今日
                     </span>
+                  )}
+                  {holidayName && (
+                    <div className="mt-0.5 truncate text-[10px] font-normal text-rose-400">
+                      {holidayName}
+                    </div>
                   )}
                 </div>
               );
@@ -248,13 +261,18 @@ export default function TimetableView({
 
             {weekDates.map((date) => {
               const iso = toISODate(date);
+              const holidayName = getHolidayName(date);
               return (
-                <div key={iso} className="border-l border-slate-100">
+                <div
+                  key={iso}
+                  className={`border-l border-slate-100 ${holidayName ? "bg-rose-50/30" : ""}`}
+                >
                   <TimetableDateColumn
                     lessons={lessonsByDate.get(iso) ?? []}
                     periods={PERIODS}
                     teacherMap={teacherMap}
                     studentMap={studentMap}
+                    locationColorMap={locationColorMap}
                     matchedLessonIds={matchedLessonIds}
                     onViewBlock={(block) => setViewingBlock(block)}
                     onContinue={(periodId, prefill) =>
@@ -277,18 +295,27 @@ export default function TimetableView({
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-4 text-xs text-slate-500">
+      <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500">
+        {locations.map((l) => (
+          <div key={l.id} className="flex items-center gap-1.5">
+            <span
+              className="h-3 w-3 rounded-full ring-1 ring-slate-200"
+              style={{ backgroundColor: l.color }}
+            />
+            {l.name}
+          </div>
+        ))}
         <div className="flex items-center gap-1.5">
-          <span className="h-3 w-3 rounded border border-indigo-200 bg-indigo-50" />
-          講師決定済み
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="h-3 w-3 rounded border border-rose-300 bg-rose-50" />
+          <span className="h-3 w-3 rounded ring-2 ring-rose-400" />
           講師未定（要割り当て）
         </div>
         <div className="flex items-center gap-1.5">
           <span className="h-3 w-3 rounded ring-2 ring-amber-400" />
           検索一致
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="h-3 w-3 rounded bg-rose-50" />
+          祝日
         </div>
         <div>同じ講師・科目のコマが連続する場合は1つのブロックとして連結表示されます（生徒の入れ替えも可）。クリックすると連続するコマをまとめて確認・編集・削除できます。</div>
       </div>
@@ -299,6 +326,7 @@ export default function TimetableView({
           periodId={editing.periodId}
           teachers={teachers}
           students={students}
+          locations={locations}
           lesson={editing.lesson}
           defaultTeacherId={editing.defaultTeacherId}
           defaultSubject={editing.defaultSubject}
@@ -327,6 +355,7 @@ export default function TimetableView({
         <BlockEditModal
           block={bulkEditingBlock}
           teachers={teachers}
+          locations={locations}
           onClose={() => setBulkEditingBlock(null)}
           onSave={handleBulkEditSave}
         />
