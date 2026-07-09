@@ -7,6 +7,12 @@ import { generateId } from "@/lib/utils";
 import { addDays, parseISODate, todayISO, toISODate } from "@/lib/dateUtils";
 import { currentGrade } from "@/lib/gradeUtils";
 
+interface PeriodGroup {
+  groupId: string;
+  subject: string;
+  studentIds: string[];
+}
+
 interface Props {
   date?: string;
   periodId?: number;
@@ -54,8 +60,18 @@ export default function LessonFormModal({
   const [selectedPeriodIds, setSelectedPeriodIds] = useState<number[]>(
     periodId ? [periodId] : []
   );
-  const [studentIdsByPeriod, setStudentIdsByPeriod] = useState<Record<number, string[]>>(
-    periodId ? { [periodId]: defaultStudentIds ?? [] } : {}
+  const [groupsByPeriod, setGroupsByPeriod] = useState<Record<number, PeriodGroup[]>>(
+    periodId
+      ? {
+          [periodId]: [
+            {
+              groupId: generateId("g"),
+              subject: defaultSubject ?? "",
+              studentIds: defaultStudentIds ?? [],
+            },
+          ],
+        }
+      : {}
   );
 
   // 曜日固定で毎週繰り返し登録する場合の設定（新規作成時のみ）
@@ -73,25 +89,67 @@ export default function LessonFormModal({
   const togglePeriod = (pid: number) => {
     if (selectedPeriodIds.includes(pid)) {
       setSelectedPeriodIds(selectedPeriodIds.filter((p) => p !== pid));
-      const rest = { ...studentIdsByPeriod };
+      const rest = { ...groupsByPeriod };
       delete rest[pid];
-      setStudentIdsByPeriod(rest);
+      setGroupsByPeriod(rest);
     } else {
+      const baseGroups =
+        selectedPeriodIds.length > 0 ? groupsByPeriod[selectedPeriodIds[0]] ?? [] : [];
       const base =
-        selectedPeriodIds.length > 0
-          ? studentIdsByPeriod[selectedPeriodIds[0]] ?? []
-          : defaultStudentIds ?? [];
+        baseGroups.length > 0
+          ? baseGroups.map((g) => ({ ...g, studentIds: [...g.studentIds] }))
+          : [
+              {
+                groupId: generateId("g"),
+                subject: defaultSubject ?? "",
+                studentIds: [...(defaultStudentIds ?? [])],
+              },
+            ];
       setSelectedPeriodIds([...selectedPeriodIds, pid].sort((a, b) => a - b));
-      setStudentIdsByPeriod({ ...studentIdsByPeriod, [pid]: [...base] });
+      setGroupsByPeriod({ ...groupsByPeriod, [pid]: base });
     }
   };
 
-  const toggleStudentForPeriod = (pid: number, studentId: string) => {
-    const current = studentIdsByPeriod[pid] ?? [];
-    const next = current.includes(studentId)
-      ? current.filter((s) => s !== studentId)
-      : [...current, studentId];
-    setStudentIdsByPeriod({ ...studentIdsByPeriod, [pid]: next });
+  const addGroupToPeriod = (pid: number) => {
+    const current = groupsByPeriod[pid] ?? [];
+    setGroupsByPeriod({
+      ...groupsByPeriod,
+      [pid]: [...current, { groupId: generateId("g"), subject: "", studentIds: [] }],
+    });
+  };
+
+  const removeGroupFromPeriod = (pid: number, groupId: string) => {
+    const current = groupsByPeriod[pid] ?? [];
+    if (current.length <= 1) return;
+    setGroupsByPeriod({
+      ...groupsByPeriod,
+      [pid]: current.filter((g) => g.groupId !== groupId),
+    });
+  };
+
+  const updateGroupSubject = (pid: number, groupId: string, value: string) => {
+    const current = groupsByPeriod[pid] ?? [];
+    setGroupsByPeriod({
+      ...groupsByPeriod,
+      [pid]: current.map((g) => (g.groupId === groupId ? { ...g, subject: value } : g)),
+    });
+  };
+
+  const toggleGroupStudent = (pid: number, groupId: string, studentId: string) => {
+    const current = groupsByPeriod[pid] ?? [];
+    setGroupsByPeriod({
+      ...groupsByPeriod,
+      [pid]: current.map((g) =>
+        g.groupId === groupId
+          ? {
+              ...g,
+              studentIds: g.studentIds.includes(studentId)
+                ? g.studentIds.filter((s) => s !== studentId)
+                : [...g.studentIds, studentId],
+            }
+          : g
+      ),
+    });
   };
 
   const handleSubmitEdit = () => {
@@ -116,16 +174,19 @@ export default function LessonFormModal({
   };
 
   const handleSubmitCreate = () => {
-    if (!subject.trim()) {
-      setError("科目を入力してください。");
-      return;
-    }
     if (selectedPeriodIds.length === 0) {
       setError("コマを1つ以上選択してください。");
       return;
     }
-    const hasEmptyPeriod = selectedPeriodIds.some(
-      (pid) => (studentIdsByPeriod[pid] ?? []).length === 0
+    const hasEmptySubject = selectedPeriodIds.some((pid) =>
+      (groupsByPeriod[pid] ?? []).some((g) => !g.subject.trim())
+    );
+    if (hasEmptySubject) {
+      setError("選択した各コマの科目を入力してください。");
+      return;
+    }
+    const hasEmptyPeriod = selectedPeriodIds.some((pid) =>
+      (groupsByPeriod[pid] ?? []).some((g) => g.studentIds.length === 0)
     );
     if (hasEmptyPeriod) {
       setError("選択した各コマに生徒を1人以上選択してください。");
@@ -148,14 +209,16 @@ export default function LessonFormModal({
 
     dates.forEach((d) => {
       selectedPeriodIds.forEach((pid) => {
-        onSave({
-          id: generateId("l"),
-          date: d,
-          periodId: pid,
-          subject: subject.trim(),
-          teacherId: teacherId === "" ? null : teacherId,
-          studentIds: studentIdsByPeriod[pid] ?? [],
-          location,
+        (groupsByPeriod[pid] ?? []).forEach((group) => {
+          onSave({
+            id: generateId("l"),
+            date: d,
+            periodId: pid,
+            subject: group.subject.trim(),
+            teacherId: teacherId === "" ? null : teacherId,
+            studentIds: group.studentIds,
+            location,
+          });
         });
       });
     });
@@ -208,15 +271,17 @@ export default function LessonFormModal({
           </select>
         </div>
 
-        <div>
-          <label className="mb-1 block text-sm font-medium text-slate-600">科目</label>
-          <input
-            value={subject}
-            onChange={(e) => setSubject(e.target.value)}
-            placeholder="例: 数学"
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-          />
-        </div>
+        {isEditing && (
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-600">科目</label>
+            <input
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              placeholder="例: 数学"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+            />
+          </div>
+        )}
 
         <div>
           <label className="mb-1 block text-sm font-medium text-slate-600">担当講師</label>
@@ -266,7 +331,7 @@ export default function LessonFormModal({
           <>
             <div>
               <label className="mb-1 block text-sm font-medium text-slate-600">
-                コマ（複数選択可・同じ講師・科目・場所でまとめて登録できます）
+                コマ（複数選択可・同じ講師・場所でまとめて登録できます。同じコマ内でも科目ごとにグループを分けて生徒を登録できます）
               </label>
               <div className="flex flex-wrap gap-2">
                 {PERIODS.map((p) => {
@@ -320,27 +385,72 @@ export default function LessonFormModal({
               <div className="space-y-3">
                 {selectedPeriodIds.map((pid) => {
                   const period = PERIODS.find((p) => p.id === pid)!;
-                  const ids = studentIdsByPeriod[pid] ?? [];
+                  const groups = groupsByPeriod[pid] ?? [];
                   return (
-                    <div key={pid}>
-                      <label className="mb-1 block text-sm font-medium text-slate-600">
-                        {period.label}の生徒（複数選択可）
-                      </label>
-                      <div className="max-h-40 space-y-1 overflow-y-auto rounded-lg border border-slate-200 p-2">
-                        {students.map((s) => (
-                          <label
-                            key={s.id}
-                            className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-slate-50"
+                    <div key={pid} className="rounded-lg border border-slate-200 p-3">
+                      <div className="mb-2 flex items-center justify-between">
+                        <span className="text-sm font-semibold text-slate-700">
+                          {period.label}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => addGroupToPeriod(pid)}
+                          className="text-xs font-medium text-indigo-600 hover:text-indigo-700"
+                        >
+                          + 科目グループを追加
+                        </button>
+                      </div>
+                      <div className="space-y-3">
+                        {groups.map((group, gIdx) => (
+                          <div
+                            key={group.groupId}
+                            className="rounded-lg border border-slate-200 bg-slate-50 p-3"
                           >
+                            <div className="mb-1 flex items-center justify-between">
+                              <label className="block text-sm font-medium text-slate-600">
+                                {period.label}の科目{groups.length > 1 ? `（${gIdx + 1}）` : ""}
+                              </label>
+                              {groups.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => removeGroupFromPeriod(pid, group.groupId)}
+                                  className="text-xs text-rose-500 hover:text-rose-600"
+                                >
+                                  このグループを削除
+                                </button>
+                              )}
+                            </div>
                             <input
-                              type="checkbox"
-                              checked={ids.includes(s.id)}
-                              onChange={() => toggleStudentForPeriod(pid, s.id)}
-                              className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                              value={group.subject}
+                              onChange={(e) =>
+                                updateGroupSubject(pid, group.groupId, e.target.value)
+                              }
+                              placeholder="例: 数学"
+                              className="mb-3 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
                             />
-                            <span>{s.name}</span>
-                            <span className="text-xs text-slate-400">{currentGrade(s)}</span>
-                          </label>
+                            <label className="mb-1 block text-sm font-medium text-slate-600">
+                              生徒（複数選択可・他の科目グループと重複してもOK）
+                            </label>
+                            <div className="max-h-40 space-y-1 overflow-y-auto rounded-lg border border-slate-200 bg-white p-2">
+                              {students.map((s) => (
+                                <label
+                                  key={s.id}
+                                  className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-slate-50"
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={group.studentIds.includes(s.id)}
+                                    onChange={() =>
+                                      toggleGroupStudent(pid, group.groupId, s.id)
+                                    }
+                                    className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                                  />
+                                  <span>{s.name}</span>
+                                  <span className="text-xs text-slate-400">{currentGrade(s)}</span>
+                                </label>
+                              ))}
+                            </div>
+                          </div>
                         ))}
                       </div>
                     </div>
