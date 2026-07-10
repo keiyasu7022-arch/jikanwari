@@ -208,31 +208,31 @@ export default function TimetableView({
           )}
         </div>
 
-        <div className="flex items-center gap-2 justify-self-start sm:justify-self-end">
+        <div className="flex items-center gap-2 justify-self-start overflow-x-auto sm:justify-self-end">
           <button
             onClick={() => setWeekStart((d) => addDays(d, -7))}
-            className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50"
+            className="shrink-0 whitespace-nowrap rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50"
           >
             ◀ 前週
           </button>
           <button
             onClick={() => setWeekStart(getSunday(new Date()))}
-            className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50"
+            className="shrink-0 whitespace-nowrap rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50"
           >
             今週
           </button>
           <button
             onClick={() => setWeekStart((d) => addDays(d, 7))}
-            className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50"
+            className="shrink-0 whitespace-nowrap rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50"
           >
             次週 ▶
           </button>
-          <span className="ml-1 text-sm font-medium text-slate-600">
+          <span className="ml-1 shrink-0 whitespace-nowrap text-sm font-medium text-slate-600">
             {formatMonthDayRange(weekDates[0], weekDates[weekDates.length - 1])}
           </span>
           <button
             onClick={() => requireAuth(() => setEditing({}))}
-            className="ml-2 rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700"
+            className="ml-2 shrink-0 whitespace-nowrap rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700"
           >
             + コマ追加
           </button>
