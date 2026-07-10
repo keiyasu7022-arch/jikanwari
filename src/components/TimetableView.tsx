@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { KarteEntry, Lesson, Location, PERIODS, Period, Student, Teacher } from "@/types";
 import LessonFormModal from "./LessonFormModal";
 import BlockDetailModal from "./BlockDetailModal";
@@ -14,7 +14,7 @@ import {
   addDays,
   formatMonthDay,
   formatMonthDayRange,
-  getMonday,
+  getSunday,
   toISODate,
   todayISO,
   weekdayLabel,
@@ -30,6 +30,9 @@ interface Props {
   onSaveLesson: (lesson: Lesson) => void;
   onDeleteLesson: (id: string) => void;
 }
+
+// 空の日の列に毎レンダー新しい配列を渡すとmemoが効かなくなるため共有する
+const EMPTY_LESSONS: Lesson[] = [];
 
 interface EditingTarget {
   date?: string;
@@ -52,23 +55,26 @@ export default function TimetableView({
 }: Props) {
   const { unlocked } = useAuth();
   const [search, setSearch] = useState("");
-  const [weekStart, setWeekStart] = useState(() => getMonday(new Date()));
+  const [weekStart, setWeekStart] = useState(() => getSunday(new Date()));
   const [editing, setEditing] = useState<EditingTarget | null>(null);
   const [viewingBlock, setViewingBlock] = useState<LessonBlock | null>(null);
   const [bulkEditingBlock, setBulkEditingBlock] = useState<LessonBlock | null>(null);
   const [viewingStudent, setViewingStudent] = useState<Student | null>(null);
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
 
-  const requireAuth = (action: () => void) => {
-    if (unlocked) {
-      action();
-    } else {
-      setPendingAction(() => action);
-    }
-  };
+  const requireAuth = useCallback(
+    (action: () => void) => {
+      if (unlocked) {
+        action();
+      } else {
+        setPendingAction(() => action);
+      }
+    },
+    [unlocked]
+  );
 
   const weekDates = useMemo(
-    () => Array.from({ length: 6 }, (_, i) => addDays(weekStart, i)),
+    () => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)),
     [weekStart]
   );
   const today = todayISO();
@@ -143,7 +149,7 @@ export default function TimetableView({
     const block = viewingBlock;
     if (!block) return;
     requireAuth(() => {
-      block.entries.forEach(({ lesson }) => onDeleteLesson(lesson.id));
+      block.entries.forEach(({ lessons }) => lessons.forEach((lesson) => onDeleteLesson(lesson.id)));
       setViewingBlock(null);
     });
   };
@@ -152,6 +158,32 @@ export default function TimetableView({
     const student = studentMap.get(studentId);
     if (student) setViewingStudent(student);
   };
+
+  const handleViewBlock = useCallback((block: LessonBlock) => setViewingBlock(block), []);
+
+  const handleContinue = useCallback(
+    (
+      date: string,
+      periodId: number,
+      prefill: {
+        teacherId: string | null;
+        subject: string;
+        studentIds: string[];
+        location: string;
+      }
+    ) =>
+      requireAuth(() =>
+        setEditing({
+          date,
+          periodId,
+          defaultTeacherId: prefill.teacherId,
+          defaultSubject: prefill.subject,
+          defaultStudentIds: prefill.studentIds,
+          defaultLocation: prefill.location,
+        })
+      ),
+    [requireAuth]
+  );
 
   return (
     <div className="space-y-4">
@@ -184,7 +216,7 @@ export default function TimetableView({
             ◀ 前週
           </button>
           <button
-            onClick={() => setWeekStart(getMonday(new Date()))}
+            onClick={() => setWeekStart(getSunday(new Date()))}
             className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50"
           >
             今週
@@ -268,25 +300,15 @@ export default function TimetableView({
                   className={`border-l border-slate-100 ${holidayName ? "bg-rose-50/30" : ""}`}
                 >
                   <TimetableDateColumn
-                    lessons={lessonsByDate.get(iso) ?? []}
+                    date={iso}
+                    lessons={lessonsByDate.get(iso) ?? EMPTY_LESSONS}
                     periods={PERIODS}
                     teacherMap={teacherMap}
                     studentMap={studentMap}
                     locationColorMap={locationColorMap}
                     matchedLessonIds={matchedLessonIds}
-                    onViewBlock={(block) => setViewingBlock(block)}
-                    onContinue={(periodId, prefill) =>
-                      requireAuth(() =>
-                        setEditing({
-                          date: iso,
-                          periodId,
-                          defaultTeacherId: prefill.teacherId,
-                          defaultSubject: prefill.subject,
-                          defaultStudentIds: prefill.studentIds,
-                          defaultLocation: prefill.location,
-                        })
-                      )
-                    }
+                    onViewBlock={handleViewBlock}
+                    onContinue={handleContinue}
                   />
                 </div>
               );

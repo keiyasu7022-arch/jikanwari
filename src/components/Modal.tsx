@@ -18,6 +18,15 @@ export default function Modal({ title, onClose, children, widthClass = "max-w-lg
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
+  // モーダル表示中は背景のスクロールを止める
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4"

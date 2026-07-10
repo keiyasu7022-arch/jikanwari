@@ -28,10 +28,11 @@ export default function BlockDetailModal({
 }: Props) {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const isUndecided = block.teacherId === null;
-  const isMulti = block.entries.length > 1;
+  const totalLessons = block.entries.reduce((sum, e) => sum + e.lessons.length, 0);
+  const isMulti = block.entries.length > 1 || totalLessons > 1;
   const firstPeriod = block.entries[0].period;
   const lastPeriod = block.entries[block.entries.length - 1].period;
-  const periodRangeLabel = isMulti
+  const periodRangeLabel = block.entries.length > 1
     ? `${firstPeriod.label}〜${lastPeriod.label}`
     : firstPeriod.label;
 
@@ -41,15 +42,11 @@ export default function BlockDetailModal({
         <div className="space-y-1 text-sm">
           <div className="flex justify-between border-b border-slate-100 pb-2">
             <span className="text-slate-400">日付</span>
-            <span className="font-medium text-slate-700">{block.entries[0].lesson.date}</span>
+            <span className="font-medium text-slate-700">{block.entries[0].lessons[0].date}</span>
           </div>
           <div className="flex justify-between border-b border-slate-100 pb-2">
             <span className="text-slate-400">コマ</span>
             <span className="font-medium text-slate-700">{periodRangeLabel}</span>
-          </div>
-          <div className="flex justify-between border-b border-slate-100 pb-2">
-            <span className="text-slate-400">科目</span>
-            <span className="font-medium text-slate-700">{block.subject}</span>
           </div>
           <div className="flex justify-between border-b border-slate-100 pb-2">
             <span className="text-slate-400">担当講師</span>
@@ -60,40 +57,47 @@ export default function BlockDetailModal({
         </div>
 
         <div className="space-y-2">
-          {block.entries.map(({ period, lesson }) => (
-            <div key={lesson.id} className="rounded-lg border border-slate-200 p-3">
+          {block.entries.map(({ period, lessons }) => (
+            <div key={period.id} className="rounded-lg border border-slate-200 p-3">
               <div className="mb-1.5 flex items-center justify-between text-xs text-slate-400">
                 <span className="font-semibold text-slate-600">
                   {period.label}（{period.time}）
                 </span>
-                <span>{lesson.location}</span>
+                <span>{lessons[0]?.location}</span>
               </div>
-              <div className="flex flex-wrap gap-1.5">
-                {lesson.studentIds.length === 0 && (
-                  <span className="text-xs text-slate-400">生徒未設定</span>
-                )}
-                {lesson.studentIds.map((sid) => {
-                  const student = studentMap.get(sid);
-                  if (!student) return null;
-                  return (
-                    <button
-                      key={sid}
-                      onClick={() => onSelectStudent(sid)}
-                      className="rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-100"
-                    >
-                      {student.name}
-                    </button>
-                  );
-                })}
+              <div className="space-y-2">
+                {lessons.map((lesson) => (
+                  <div key={lesson.id} className="space-y-1">
+                    <span className="text-xs font-medium text-slate-500">{lesson.subject}</span>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {lesson.studentIds.length === 0 && (
+                        <span className="text-xs text-slate-400">生徒未設定</span>
+                      )}
+                      {lesson.studentIds.map((sid) => {
+                        const student = studentMap.get(sid);
+                        if (!student) return null;
+                        return (
+                          <button
+                            key={sid}
+                            onClick={() => onSelectStudent(sid)}
+                            className="rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-100"
+                          >
+                            {student.name}
+                          </button>
+                        );
+                      })}
+                      {isMulti && (
+                        <button
+                          onClick={() => onRequestEditSingle(period, lesson)}
+                          className="text-xs text-slate-400 hover:text-indigo-600"
+                        >
+                          この時限だけ編集する
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
-              {isMulti && (
-                <button
-                  onClick={() => onRequestEditSingle(period, lesson)}
-                  className="mt-2 text-xs text-slate-400 hover:text-indigo-600"
-                >
-                  この時限だけ編集する
-                </button>
-              )}
             </div>
           ))}
         </div>
@@ -101,7 +105,7 @@ export default function BlockDetailModal({
         {confirmingDelete ? (
           <div className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm">
             <p className="mb-2 text-rose-600">
-              {periodRangeLabel}（{block.entries.length}コマ）をまとめて削除します。よろしいですか？
+              {periodRangeLabel}（{totalLessons}コマ）をまとめて削除します。よろしいですか？
             </p>
             <div className="flex justify-end gap-2">
               <button

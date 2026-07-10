@@ -14,24 +14,19 @@ interface Props {
 }
 
 export default function BlockEditModal({ block, teachers, locations, onClose, onSave }: Props) {
-  const [subject, setSubject] = useState(block.subject);
+  const allLessons = block.entries.flatMap((e) => e.lessons);
   const [teacherId, setTeacherId] = useState<string>(block.teacherId ?? "");
-  const [location, setLocation] = useState<string>(block.entries[0].lesson.location);
-  const [error, setError] = useState("");
+  const [location, setLocation] = useState<string>(allLessons[0].location);
 
-  const isMulti = block.entries.length > 1;
-  const periodRangeLabel = isMulti
-    ? `${block.entries[0].period.label}〜${block.entries[block.entries.length - 1].period.label}`
-    : block.entries[0].period.label;
+  const isMulti = allLessons.length > 1;
+  const periodRangeLabel =
+    block.entries.length > 1
+      ? `${block.entries[0].period.label}〜${block.entries[block.entries.length - 1].period.label}`
+      : block.entries[0].period.label;
 
   const handleSubmit = () => {
-    if (!subject.trim()) {
-      setError("科目を入力してください。");
-      return;
-    }
-    const updated = block.entries.map(({ lesson }) => ({
+    const updated = allLessons.map((lesson) => ({
       ...lesson,
-      subject: subject.trim(),
       teacherId: teacherId === "" ? null : teacherId,
       location,
     }));
@@ -43,8 +38,8 @@ export default function BlockEditModal({ block, teachers, locations, onClose, on
     <Modal title={isMulti ? "まとめて編集" : "コマを編集"} onClose={onClose} widthClass="max-w-md">
       <div className="space-y-4">
         <p className="text-sm text-slate-500">
-          {block.entries[0].lesson.date} の {periodRangeLabel}（{block.entries.length}コマ）
-          {isMulti && "をまとめて"}変更します。生徒の割り当てはコマごとにそのまま維持されます。
+          {allLessons[0].date} の {periodRangeLabel}（{allLessons.length}コマ）
+          {isMulti && "をまとめて"}変更します。科目・生徒の割り当てはコマごとにそのまま維持されます。
         </p>
 
         <div>
@@ -60,15 +55,6 @@ export default function BlockEditModal({ block, teachers, locations, onClose, on
               </option>
             ))}
           </select>
-        </div>
-
-        <div>
-          <label className="mb-1 block text-sm font-medium text-slate-600">科目</label>
-          <input
-            value={subject}
-            onChange={(e) => setSubject(e.target.value)}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-          />
         </div>
 
         <div>
@@ -91,8 +77,6 @@ export default function BlockEditModal({ block, teachers, locations, onClose, on
             </p>
           )}
         </div>
-
-        {error && <p className="text-sm text-rose-500">{error}</p>}
 
         <div className="flex justify-end gap-2 pt-2">
           <button

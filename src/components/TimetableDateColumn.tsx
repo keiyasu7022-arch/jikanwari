@@ -1,5 +1,6 @@
 "use client";
 
+import { memo, useMemo } from "react";
 import { Lesson, Period, Student, Teacher } from "@/types";
 import { buildDayBlocks, LessonBlock } from "@/lib/calendarLayout";
 import { hexToRgba } from "@/lib/utils";
@@ -8,6 +9,7 @@ const ROW_HEIGHT = 92;
 const FALLBACK_LOCATION_COLOR = "#94a3b8";
 
 interface Props {
+  date: string;
   lessons: Lesson[];
   periods: Period[];
   teacherMap: Map<string, Teacher>;
@@ -16,6 +18,7 @@ interface Props {
   matchedLessonIds: Set<string> | null;
   onViewBlock: (block: LessonBlock) => void;
   onContinue: (
+    date: string,
     periodId: number,
     prefill: {
       teacherId: string | null;
@@ -26,7 +29,8 @@ interface Props {
   ) => void;
 }
 
-export default function TimetableDateColumn({
+function TimetableDateColumn({
+  date,
   lessons,
   periods,
   teacherMap,
@@ -36,7 +40,10 @@ export default function TimetableDateColumn({
   onViewBlock,
   onContinue,
 }: Props) {
-  const { blocks, laneCount } = buildDayBlocks(lessons, periods);
+  const { blocks, laneCount } = useMemo(
+    () => buildDayBlocks(lessons, periods),
+    [lessons, periods]
+  );
 
   const occupied: boolean[][] = periods.map(() => Array(laneCount).fill(false));
   for (const block of blocks) {
@@ -61,15 +68,18 @@ export default function TimetableDateColumn({
     >
       {blocks.map((block) => {
         const isUndecided = block.teacherId === null;
-        const hasMatch = block.entries.some((e) => matchedLessonIds?.has(e.lesson.id));
+        const hasMatch = block.entries.some((e) =>
+          e.lessons.some((lesson) => matchedLessonIds?.has(lesson.id))
+        );
         const isDimmed = matchedLessonIds !== null && !hasMatch;
         const isHighlighted = matchedLessonIds !== null && hasMatch;
         const nextIndex = block.startIndex + block.span;
         const canContinue = nextIndex < periods.length && !occupied[nextIndex][block.lane];
         const lastEntry = block.entries[block.entries.length - 1];
+        const lastLesson = lastEntry.lessons[lastEntry.lessons.length - 1];
         const teacherName = isUndecided ? null : teacherMap.get(block.teacherId!)?.name;
         const locationColor =
-          locationColorMap.get(block.entries[0].lesson.location) ?? FALLBACK_LOCATION_COLOR;
+          locationColorMap.get(block.entries[0].lessons[0].location) ?? FALLBACK_LOCATION_COLOR;
 
         return (
           <div
@@ -101,12 +111,11 @@ export default function TimetableDateColumn({
               }`}
             >
               <span className="truncate">{isUndecided ? "⚠ 講師未定" : teacherName}</span>
-              <span className="shrink-0 text-slate-400">{block.subject}</span>
             </div>
             <div className="flex flex-1 flex-col overflow-y-auto">
               {block.entries.map((entry) => (
                 <div
-                  key={entry.lesson.id}
+                  key={entry.period.id}
                   className="flex flex-col gap-0.5 border-t border-white/70 px-1.5 py-1 text-left text-[11px] leading-tight text-slate-600 first:border-t-0"
                 >
                   <span className="flex items-center justify-between gap-1 font-medium text-slate-500">
@@ -116,13 +125,19 @@ export default function TimetableDateColumn({
                         className="h-1.5 w-1.5 rounded-full"
                         style={{
                           backgroundColor:
-                            locationColorMap.get(entry.lesson.location) ?? FALLBACK_LOCATION_COLOR,
+                            locationColorMap.get(entry.lessons[0].location) ??
+                            FALLBACK_LOCATION_COLOR,
                         }}
                       />
-                      {entry.lesson.location}
+                      {entry.lessons[0].location}
                     </span>
                   </span>
-                  <span className="truncate text-slate-500">{studentsLabel(entry.lesson)}</span>
+                  {entry.lessons.map((lesson) => (
+                    <span key={lesson.id} className="flex items-baseline gap-1 truncate">
+                      <span className="shrink-0 text-slate-400">{lesson.subject}</span>
+                      <span className="truncate text-slate-500">{studentsLabel(lesson)}</span>
+                    </span>
+                  ))}
                 </div>
               ))}
             </div>
@@ -130,11 +145,11 @@ export default function TimetableDateColumn({
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  onContinue(periods[nextIndex].id, {
+                  onContinue(date, periods[nextIndex].id, {
                     teacherId: block.teacherId,
-                    subject: block.subject,
-                    studentIds: lastEntry.lesson.studentIds,
-                    location: lastEntry.lesson.location,
+                    subject: lastLesson.subject,
+                    studentIds: lastLesson.studentIds,
+                    location: lastLesson.location,
                   });
                 }}
                 className="border-t border-white/70 px-1.5 py-1 text-[10px] text-slate-400 hover:bg-white/70 hover:text-indigo-600"
@@ -148,5 +163,7 @@ export default function TimetableDateColumn({
     </div>
   );
 }
+
+export default memo(TimetableDateColumn);
 
 export { ROW_HEIGHT };

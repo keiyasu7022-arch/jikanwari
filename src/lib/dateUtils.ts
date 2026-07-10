@@ -25,6 +25,13 @@ export function getMonday(date: Date): Date {
   return d;
 }
 
+// その日を含む週の日曜日を返す
+export function getSunday(date: Date): Date {
+  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  d.setDate(d.getDate() - d.getDay());
+  return d;
+}
+
 export function addDays(date: Date, days: number): Date {
   const d = new Date(date);
   d.setDate(d.getDate() + days);

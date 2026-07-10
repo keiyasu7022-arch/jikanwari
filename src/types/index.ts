@@ -70,6 +70,14 @@ export interface Lesson {
   location: string; // Location.name を参照（自由文字列として保持）
 }
 
+export interface TeacherIncentive {
+  id: string;
+  teacherId: string;
+  date: string; // YYYY-MM-DD
+  amount: number;
+  reason: string;
+}
+
 export interface KarteEntry {
   id: string;
   studentId: string;
