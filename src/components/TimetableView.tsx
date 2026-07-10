@@ -187,8 +187,8 @@ export default function TimetableView({
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 items-center gap-3 sm:grid-cols-3">
-        <div className="relative w-full justify-self-start sm:max-w-xs">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="relative w-full sm:w-auto sm:max-w-xs">
           <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
             🔍
           </span>
@@ -200,15 +200,13 @@ export default function TimetableView({
           />
         </div>
 
-        <div className="justify-self-start sm:justify-self-center">
-          {undecidedCount > 0 && (
-            <div className="flex items-center gap-1.5 rounded-lg bg-rose-50 px-3 py-1.5 text-sm font-medium text-rose-600">
-              ⚠ 講師未定のコマが {undecidedCount} 件あります
-            </div>
-          )}
-        </div>
+        {undecidedCount > 0 && (
+          <div className="flex items-center gap-1.5 rounded-lg bg-rose-50 px-3 py-1.5 text-sm font-medium text-rose-600">
+            ⚠ 講師未定のコマが {undecidedCount} 件あります
+          </div>
+        )}
 
-        <div className="flex items-center gap-2 justify-self-start overflow-x-auto sm:justify-self-end">
+        <div className="flex shrink-0 items-center gap-2 overflow-x-auto">
           <button
             onClick={() => setWeekStart((d) => addDays(d, -7))}
             className="shrink-0 whitespace-nowrap rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50"
