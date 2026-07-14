@@ -206,31 +206,33 @@ export default function TimetableView({
           </div>
         )}
 
-        <div className="flex shrink-0 items-center gap-2 overflow-x-auto">
-          <button
-            onClick={() => setWeekStart((d) => addDays(d, -7))}
-            className="shrink-0 whitespace-nowrap rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50"
-          >
-            ◀ 前週
-          </button>
-          <button
-            onClick={() => setWeekStart(getSunday(new Date()))}
-            className="shrink-0 whitespace-nowrap rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50"
-          >
-            今週
-          </button>
-          <button
-            onClick={() => setWeekStart((d) => addDays(d, 7))}
-            className="shrink-0 whitespace-nowrap rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50"
-          >
-            次週 ▶
-          </button>
-          <span className="ml-1 shrink-0 whitespace-nowrap text-sm font-medium text-slate-600">
-            {formatMonthDayRange(weekDates[0], weekDates[weekDates.length - 1])}
-          </span>
+        <div className="flex w-full min-w-0 items-center gap-2 sm:w-auto">
+          <div className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto sm:flex-none">
+            <button
+              onClick={() => setWeekStart((d) => addDays(d, -7))}
+              className="shrink-0 whitespace-nowrap rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50"
+            >
+              ◀ 前週
+            </button>
+            <button
+              onClick={() => setWeekStart(getSunday(new Date()))}
+              className="shrink-0 whitespace-nowrap rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50"
+            >
+              今週
+            </button>
+            <button
+              onClick={() => setWeekStart((d) => addDays(d, 7))}
+              className="shrink-0 whitespace-nowrap rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50"
+            >
+              次週 ▶
+            </button>
+            <span className="ml-1 shrink-0 whitespace-nowrap text-sm font-medium text-slate-600">
+              {formatMonthDayRange(weekDates[0], weekDates[weekDates.length - 1])}
+            </span>
+          </div>
           <button
             onClick={() => requireAuth(() => setEditing({}))}
-            className="ml-2 shrink-0 whitespace-nowrap rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700"
+            className="ml-1 shrink-0 whitespace-nowrap rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700"
           >
             + コマ追加
           </button>
